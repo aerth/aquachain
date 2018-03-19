@@ -22,6 +22,8 @@ import (
 	"github.com/aquanetwork/aquachain/common"
 )
 
+type ForkMap map[int]*big.Int
+
 // DAOForkBlockExtra is the block header extra-data field to set for the DAO fork
 // point and a number of consecutive blocks to allow fast/light syncers to correctly
 // pick the side they want  ("dao-hard-fork").
