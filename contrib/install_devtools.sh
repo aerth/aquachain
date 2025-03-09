@@ -7,26 +7,30 @@ if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     exit 1
 fi
 solc_bin_path=${HOME}/.local/bin/solc-static-linux
-
+SOLIDITY_VERSION=${SOLIDITY_VERSION-v0.8.28} # can bump this version
+solidity_url=https://github.com/ethereum/solidity/releases/download/${SOLIDITY_VERSION}/solc-static-linux
 install_go_tools() {
     echo "Installing go tools"
     GOCMD=${GOCMD:-go}
-    type "stringer" 1>/dev/null || ${GOCMD} install -v golang.org/x/tools/cmd/stringer@latest | sed 's/^/[stringer] /'
+    echo "Using GOCMD=${GOCMD}"
+    type "stringer" 2>/dev/null || ${GOCMD} install -v golang.org/x/tools/cmd/stringer@latest | sed 's/^/[stringer] /'
     # TODO remove 'go-bindata' in favor of embed.FS
-    type "go-bindata" 1>/dev/null || ${GOCMD} install -v github.com/kevinburke/go-bindata/v4/...@latest
-    type "gencodec" 1>/dev/null || ${GOCMD} install -v github.com/fjl/gencodec@latest
-    type "protoc-gen-go" 1>/dev/null || ${GOCMD} install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
-    type "protoc" 1>/dev/null || echo 'Please install protoc (eg. apt install protobuf-compiler)'
-    type "npm" 1>/dev/null || echo 'Consider installing node.js and npm (eg. https://github.com/nvm-sh/nvm)'
-    type "solc" 1>/dev/null || echo 'Consider installing solc (eg. https://github.com/ethereum/solidity/releases)'
-    type "stringer" 1>/dev/null || echo 'make sure you add $GOPATH/bin to your $PATH (currently is $PATH)'
+    type "go-bindata" 2>/dev/null || ${GOCMD} install -v github.com/kevinburke/go-bindata/v4/...@latest
+    type "gencodec" 2>/dev/null || ${GOCMD} install -v github.com/fjl/gencodec@latest
+    type "protoc-gen-go" 2>/dev/null || ${GOCMD} install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    type "protoc" 2>/dev/null || echo 'Please install protoc (eg. apt install protobuf-compiler)'
+    type "npm" 2>/dev/null || echo 'Consider installing node.js and npm (eg. https://github.com/nvm-sh/nvm)'
+    type "solc-static-linux" 2>/dev/null || echo 'Consider installing solc (eg. contrib/install_devtools.sh solc)'
+    type "solc-aq9ua" 2>/dev/null || echo 'Consider installing solc-aqua (eg. contrib/install_devtools.sh solc-aqua)'
+    type "stringer" 2>/dev/null || (echo 'make sure you add $GOPATH/bin to your $PATH (currently is $PATH)' && exit 1)
+    echo "Successfully installed go tools"
     #	${GOCMD} install gitlab.com/aquachain/x/cmd/aqua-abigen@latest # TODO: fix the x repo (it should depend on this repo)
 }
 install_solc() {
     test -f ${solc_bin_path} && echo "....solc already installed" && return 0
     echo "Installing solc (solidity compiler)"
-    url=https://github.com/ethereum/solidity/releases/download/v0.8.28/solc-static-linux
-    wget -c $url
+
+    wget -c $solidity_url -O solc-static-linux
     mv solc-static-linux ${solc_bin_path}
     chmod +x ${HOME}/.local/bin/solc-static-linux
     hash -r
