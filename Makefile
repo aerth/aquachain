@@ -170,16 +170,8 @@ release/SHA384.txt:
 	$(hashfn) release/*.tar.gz release/*.zip release/*.deb | tee $@
 hash: release/SHA384.txt
 .PHONY += hash
-devtools:
-	${GOCMD} install golang.org/x/tools/cmd/stringer@latest
-	${GOCMD} install github.com/kevinburke/go-bindata/v4/...@latest
-	${GOCMD} install github.com/fjl/gencodec@latest
-#	env GOBIN= ${GOCMD} get github.com/golang/protobuf/protoc-gen-go@latest
-	${GOCMD} install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-#	${GOCMD} install gitlab.com/aquachain/x/cmd/aqua-abigen@latest # TODO: fix the x repo (it should depend on this repo)
-	@type "protoc" 1>/dev/null || echo 'Please install protoc (eg. apt install protobuf-compiler)'
-	@type "npm" 1>/dev/null || echo 'Consider installing node.js and npm (eg. https://github.com/nvm-sh/nvm)'
-	@type "solc" 1>/dev/null || echo 'Consider installing solc (eg. https://github.com/ethereum/solidity/releases)'
+devtools: # install required go tools to generate code (only when modifying non-go files)
+	bash contrib/install_devtools.sh
 
 generate: devtools
 	${GOCMD} generate ./...
