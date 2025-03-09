@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/aquachain/aquachain/aqua"
 	"gitlab.com/aquachain/aquachain/cmd/utils"
-	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/config"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/toml"
@@ -52,7 +51,7 @@ func TestConfigDefaultMainnet(t *testing.T) {
 func TestConfigDefaultEmptyCoinbase(t *testing.T) {
 	var cfg0 *utils.AquachainConfig = subcommands.Mkconfig("aqua", "", false, "100aa3", "nonempty")
 	// println("node name:", cfg0.Node.NodeName())
-	cfg0.Aqua.Aquabase = common.Address{}
+	cfg0.Aqua.Aquabase = ""
 	got, err := toml.Marshal(cfg0)
 	if err != nil {
 		t.Fatal(err)

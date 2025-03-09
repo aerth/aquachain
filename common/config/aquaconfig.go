@@ -113,7 +113,7 @@ type Aquaconfig struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Aquabase     common.Address `toml:",omitempty"`
+	Aquabase     string        `toml:",omitempty"`
 	MinerThreads int            `toml:",omitempty"`
 	ExtraData    hexutil.Bytes  `toml:",omitempty"`
 	GasPrice     uint64         // TODO use uint64 since it wont go above 1e18 anyways

@@ -93,6 +93,11 @@ type Aquachain struct {
 // New creates a new Aquachain object (including the
 // initialisation of the common Aquachain object)
 func New(ctx context.Context, nodectx *node.ServiceContext, config *config.Aquaconfig, nodename string) (*Aquachain, error) {
+	if config.Aquabase != "" && !common.IsHexAddress(config.Aquabase) {
+		return nil, fmt.Errorf("invalid aquabase address: %s", config.Aquabase)
+	}
+	aquabaseAddr := common.HexToAddress(config.Aquabase)
+
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
@@ -115,7 +120,6 @@ func New(ctx context.Context, nodectx *node.ServiceContext, config *config.Aquac
 	if config.ChainId != chainConfig.ChainId.Uint64() {
 		return nil, fmt.Errorf("ChainID mismatch: configured %d, chain %d", config.ChainId, chainConfig.ChainId)
 	}
-
 	aqua := &Aquachain{
 		ctx:            ctx,
 		config:         config,
@@ -127,7 +131,7 @@ func New(ctx context.Context, nodectx *node.ServiceContext, config *config.Aquac
 		shutdownChan:   make(chan bool),
 		stopDbUpgrade:  stopDbUpgrade,
 		gasPrice:       new(big.Int).SetUint64(config.GasPrice),
-		aquabase:       config.Aquabase,
+		aquabase:       aquabaseAddr,
 		bloomRequests:  make(chan chan *bloombits.Retrieval),
 		bloomIndexer:   NewBloomIndexer(chainConfig, chainDb, params.BloomBitsBlocks),
 	}
