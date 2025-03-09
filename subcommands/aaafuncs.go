@@ -473,15 +473,17 @@ func MakeAddress(ks *keystore.KeyStore, account string) (accounts.Account, error
 	return accs[index], nil
 }
 
-// setAquabase retrieves the aquabase either from the directly specified
+// setAquabaseConfig retrieves the aquabase either from the directly specified
 // command line flags or from the keystore if CLI indexed.
-func setAquabase(cmd *cli.Command, ks *keystore.KeyStore, cfg *aqua.Config) {
+//
+// applies flag to aqua.Config
+func setAquabaseConfig(cmd *cli.Command, ks *keystore.KeyStore, cfg *aqua.Config) {
 	if cmd.IsSet(aquaflags.AquabaseFlag.Name) {
 		account, err := MakeAddress(ks, cmd.String(aquaflags.AquabaseFlag.Name))
 		if err != nil {
 			Fatalf("Option %q: %v", aquaflags.AquabaseFlag.Name, err)
 		}
-		cfg.Aquabase = account.Address
+		cfg.Aquabase = account.Address.String()
 	}
 }
 
@@ -864,7 +866,7 @@ func SetAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 	am := stack.AccountManager()
 	if am != nil {
 		ks := am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-		setAquabase(cmd, ks, cfg)
+		setAquabaseConfig(cmd, ks, cfg)
 	}
 
 	setGPO(cmd, &cfg.GPO)

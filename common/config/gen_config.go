@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/aquachain/aquachain/aqua/downloader"
 	"gitlab.com/aquachain/aquachain/aqua/gasprice"
-	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/alerts"
 	"gitlab.com/aquachain/aquachain/common/hexutil"
 	"gitlab.com/aquachain/aquachain/consensus/aquahash/ethashdag"
@@ -19,25 +18,25 @@ var _ = (*AquaConfigMarshaling)(nil)
 // MarshalTOML marshals as TOML.
 func (a Aquaconfig) MarshalTOML() (interface{}, error) {
 	type Aquaconfig struct {
-		Genesis                 *core.Genesis `toml:",omitempty"`
+		Genesis                 *core.Genesis `json:",omitempty"`
 		ChainId                 uint64
 		SyncMode                downloader.SyncMode
-		NoPruning               bool `toml:"NoPruning"`
-		SkipBcVersionCheck      bool `toml:"-"`
-		DatabaseHandles         int  `toml:"-"`
+		NoPruning               bool `json:"NoPruning"`
+		SkipBcVersionCheck      bool `json:"-"`
+		DatabaseHandles         int  `json:"-"`
 		DatabaseCache           int
 		TrieCache               int
 		TrieTimeout             time.Duration
-		Aquabase                common.Address `toml:",omitempty"`
-		MinerThreads            int            `toml:",omitempty"`
-		ExtraData               hexutil.Bytes  `toml:",omitempty"`
+		Aquabase                string        `json:",omitempty"`
+		MinerThreads            int           `json:",omitempty"`
+		ExtraData               hexutil.Bytes `json:",omitempty"`
 		GasPrice                uint64
 		Aquahash                *ethashdag.Config
 		TxPool                  core.TxPoolConfig
 		GPO                     gasprice.Config
 		EnablePreimageRecording bool
-		JavascriptDirectory     string             `toml:"-"`
-		Alerts                  alerts.AlertConfig `toml:",omitempty"`
+		JavascriptDirectory     string             `json:"-"`
+		Alerts                  alerts.AlertConfig `json:",omitempty"`
 	}
 	var enc Aquaconfig
 	enc.Genesis = a.Genesis
@@ -65,25 +64,25 @@ func (a Aquaconfig) MarshalTOML() (interface{}, error) {
 // UnmarshalTOML unmarshals from TOML.
 func (a *Aquaconfig) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	type Aquaconfig struct {
-		Genesis                 *core.Genesis `toml:",omitempty"`
+		Genesis                 *core.Genesis `json:",omitempty"`
 		ChainId                 *uint64
 		SyncMode                *downloader.SyncMode
-		NoPruning               *bool `toml:"NoPruning"`
-		SkipBcVersionCheck      *bool `toml:"-"`
-		DatabaseHandles         *int  `toml:"-"`
+		NoPruning               *bool `json:"NoPruning"`
+		SkipBcVersionCheck      *bool `json:"-"`
+		DatabaseHandles         *int  `json:"-"`
 		DatabaseCache           *int
 		TrieCache               *int
 		TrieTimeout             *time.Duration
-		Aquabase                *common.Address `toml:",omitempty"`
-		MinerThreads            *int            `toml:",omitempty"`
-		ExtraData               *hexutil.Bytes  `toml:",omitempty"`
+		Aquabase                *string        `json:",omitempty"`
+		MinerThreads            *int           `json:",omitempty"`
+		ExtraData               *hexutil.Bytes `json:",omitempty"`
 		GasPrice                *uint64
 		Aquahash                *ethashdag.Config
 		TxPool                  *core.TxPoolConfig
 		GPO                     *gasprice.Config
 		EnablePreimageRecording *bool
-		JavascriptDirectory     *string             `toml:"-"`
-		Alerts                  *alerts.AlertConfig `toml:",omitempty"`
+		JavascriptDirectory     *string             `json:"-"`
+		Alerts                  *alerts.AlertConfig `json:",omitempty"`
 	}
 	var dec Aquaconfig
 	if err := unmarshal(&dec); err != nil {
