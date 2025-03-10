@@ -1,0 +1,50 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
+{
+	"name": "AquaDEV",
+	"dockerComposeFile": "devcontainer-docker-compose.yml",
+	"service": "aquadevcontainer",
+	"workspaceFolder": "/workspaces/aquachain", // with docker-compose
+	// "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}", // not docker-compose
+	// "build": { // not-docker-compose
+	// 	// Sets the run context to one level up instead of the .devcontainer folder.
+	// 	"context": "..",
+	// 	"dockerfile": "./devcontainer.Dockerfile"
+	// },
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [
+		8543,
+		8544,
+		"aquaexplorer:8000",
+		"aquaexplorer:8001"
+	],
+	"userEnvProbe": "none",
+	// Uncomment the next line to run commands after the container is created.
+	"postCreateCommand": "cat /etc/os-release",
+	// Configure tool-specific properties.
+	// "customizations": {},
+	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
+	"portsAttributes": {
+		"explorer:8000": {
+			"label": "Explorer (testing)",
+			"protocol": "https",
+			"requireLocalPort": false
+		},
+		"explorer:8001": {
+			"label": "Explorer",
+			"protocol": "https",
+			"requireLocalPort": false
+		},
+		"8543": {
+			"label": "RPC (HTTP)",
+			"onAutoForward": "notify"
+		},
+		"8544": {
+			"label": "RPC (WS)",
+			"onAutoForward": "notify",
+			"protocol": "https"
+		}
+	},
+	"additionalProperties": {}
+}
