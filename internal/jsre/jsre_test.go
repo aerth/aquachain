@@ -102,7 +102,7 @@ func TestNatto(t *testing.T) {
 }
 
 func TestBind(t *testing.T) {
-	jsre := New("", os.Stdout)
+	jsre := New(".", os.Stdout)
 	defer jsre.Stop(false)
 
 	jsre.Bind("no", &testNativeObjectBinding{})

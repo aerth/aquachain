@@ -1222,12 +1222,22 @@ func (bc *BlockChain) insertChain2(chain types.Blocks, try int) (int, []interfac
 		if err != nil {
 			return i, events, coalescedLogs, err
 		}
+		var logctx = []any{"number", block.Number(), "hash", block.Hash(),
+			"txs", len(block.Transactions()), "gas", block.GasUsed(),
+			"elapsed", common.PrettyDuration(proctime),
+			"difficulty", block.Difficulty(), "td", bc.GetTd(block.Hash(), block.NumberU64()),
+		}
+
+		if len(block.Uncles()) > 0 {
+			logctx = append(logctx, "uncles", len(block.Uncles()))
+		}
 		switch status {
 		case CanonStatTy:
 			if true {
+				log.ResetFieldPadding()
 				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
 					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)),
-					"difficulty", block.Difficulty(), "totalDifficulty", bc.GetTd(block.Hash(), block.NumberU64()))
+					"difficulty", block.Difficulty(), "td", bc.GetTd(block.Hash(), block.NumberU64()))
 			} else {
 				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
 					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))

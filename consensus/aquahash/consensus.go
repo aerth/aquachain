@@ -496,6 +496,9 @@ func weiToAqua(wei *big.Int) string {
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
+	if header.Coinbase == (common.Address{}) {
+		return
+	}
 	// Select the correct block reward based on chain config
 	blockReward := BlockReward
 	// fees-only after 42,000,000
@@ -520,5 +523,10 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		reward.Add(reward, r)
 	}
 	state.AddBalance(header.Coinbase, reward)
-	log.Trace("Block reward", "miner", header.Coinbase, "reward", weiToAqua(reward), "caller2", log.Caller(1), "caller3", log.Caller(2))
+	now := time.Now().Unix()
+	blocktime := header.Time.Int64()
+	if int64(now)-blocktime < 1200 {
+		log.Warn("Block reward", "miner", header.Coinbase, "reward", weiToAqua(reward))
+	}
+	// log.Trace("Block reward", "miner", header.Coinbase, "reward", weiToAqua(reward))
 }

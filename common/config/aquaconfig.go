@@ -7,7 +7,6 @@ package config
 import (
 	"time"
 
-	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/alerts"
 	"gitlab.com/aquachain/aquachain/common/hexutil"
 	"gitlab.com/aquachain/aquachain/consensus/aquahash"
@@ -113,10 +112,11 @@ type Aquaconfig struct {
 	TrieTimeout        time.Duration
 
 	// Mining-related options
-	Aquabase     string        `toml:",omitempty"`
-	MinerThreads int            `toml:",omitempty"`
-	ExtraData    hexutil.Bytes  `toml:",omitempty"`
-	GasPrice     uint64         // TODO use uint64 since it wont go above 1e18 anyways
+	Aquabase string `toml:",omitempty"`
+
+	MinerThreads int           `toml:",omitempty"`
+	ExtraData    hexutil.Bytes `toml:",omitempty"`
+	GasPrice     uint64
 
 	// Aquahash options
 	Aquahash *AquahashConfig
@@ -125,10 +125,10 @@ type Aquaconfig struct {
 	TxPool TxPoolConfig
 
 	// Gas Price Oracle options
-	GPO GaspriceConfig
+	GPO gasprice.Config `toml:",omitempty"`
 
 	// Enables tracking of SHA3 preimages in the VM
-	EnablePreimageRecording bool
+	EnablePreimageRecording bool `toml:",omitempty"`
 
 	// Miscellaneous options
 

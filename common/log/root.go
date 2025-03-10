@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-stack/stack"
@@ -77,6 +78,36 @@ func Trace(msg string, ctx ...interface{}) {
 
 // Debug is a convenient alias for Root().Debug
 func Debug(msg string, ctx ...interface{}) {
+	Root().write(msg, LvlDebug, ctx)
+}
+
+// atomic map TODO: *does this func copy the atomic.Value ?
+var slowmap atomic.Value = func() atomic.Value {
+	m := make(map[string]time.Time)
+	var a atomic.Value
+	a.Store(m)
+	return a
+}()
+
+var oktime = time.Second * 5
+
+// DebugSlow is flaky
+func DebugSlow(msg string, ctx ...any) {
+	caller := stack.Caller(1).Frame().Function
+	m, _ := slowmap.Load().(map[string]time.Time)
+	got, ok := m[caller]
+	timesince := time.Since(got)
+	if timesince < 0 {
+		return
+	}
+	if timesince < oktime/2 {
+		return
+	}
+	if !ok || timesince > oktime {
+		Root().write(msg, LvlDebug, append(ctx, "caller", caller))
+		m[caller] = time.Now()
+	}
+	slowmap.Store(m)
 	Root().write(msg, LvlDebug, ctx)
 }
 

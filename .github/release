@@ -5,5 +5,5 @@ ls -l
 whoami
 id -u
 id -g
-chown $(id -u):$(id -g) /github/workspace -R
+chown $(id -u):$(id -g) /github/workspaces -R
 make clean release release=1

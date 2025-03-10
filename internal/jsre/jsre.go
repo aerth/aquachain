@@ -70,6 +70,7 @@ type evalReq struct {
 
 // runtime must be stopped with Stop() after use and cannot be used after stopping
 func New(assetPath string, output io.Writer) *JSRE {
+	log.Debug("JSRE.New", "assetPath", assetPath)
 	re := &JSRE{
 		assetPath:     assetPath,
 		output:        output,

@@ -23,7 +23,7 @@ import (
 )
 
 func TestCompleteKeywords(t *testing.T) {
-	re := New("", os.Stdout)
+	re := New(".", os.Stdout)
 	re.Run(`
 		function theClass() {
 			this.foo = 3;
