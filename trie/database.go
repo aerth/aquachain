@@ -260,6 +260,8 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 		}
 		if batch.ValueSize() > aquadb.IdealBatchSize {
 			if err := batch.Write(); err != nil {
+				log.Error("Failed to write preimages to disk", "err", err)
+				db.lock.RUnlock() // NEW as of v1.7.17
 				return err
 			}
 			batch.Reset()
