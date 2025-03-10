@@ -77,7 +77,6 @@ func (srv *Server) websocketHandler(conn *websocket.Conn) {
 		return websocketJSONCodec.Receive(conn, v)
 	}
 	name := "websocket"
-	log.Warn("websocket: connection", "remote", fmt.Sprintf("%#v", conn))
 	// name := fmt.Sprintf("ws:%s", conn.RemoteAddr().String())
 	srv.ServeCodec(name, NewCodec(conn, encoder, decoder), OptionMethodInvocation|OptionSubscriptions)
 }
@@ -93,7 +92,7 @@ func NewWSServer(allowedOrigins []string, allowedIP netutil.Netlist, reverseprox
 // websocket upgrade process. When a '*' is specified as an allowed origins all
 // connections are accepted.
 func wsHandshakeValidator(allowedOrigins []string, allowIPset netutil.Netlist, reverseProxy bool) func(*websocket.Config, *http.Request) error {
-	origins := set.NewSet()
+	allowedOriginsSet := set.NewSet()
 	//replacer := strings.NewReplacer(" ", "", "\n", "", "\t", "")
 
 	allowAllOrigins := false
@@ -102,17 +101,17 @@ func wsHandshakeValidator(allowedOrigins []string, allowIPset netutil.Netlist, r
 			allowAllOrigins = true
 		}
 		if origin != "" {
-			origins.Add(strings.ToLower(origin))
+			allowedOriginsSet.Add(strings.ToLower(origin))
 		}
 	}
 
 	// browser/cors: allow only localhost if no allowedOrigins are specified.
-	if len(origins.ToSlice()) == 0 {
+	if len(allowedOriginsSet.ToSlice()) == 0 {
 		log.Warn("websocket: no '--wsorigins' specified, use --wsorigins='*' if you want browser access (CORS)")
-		origins.Add("http://localhost")
+		allowedOriginsSet.Add("http://localhost")
 	}
 
-	log.Info(fmt.Sprintf("Allowed origin(s) for WS RPC interface %v\n", origins.ToSlice()))
+	log.Info(fmt.Sprintf("Allowed origin(s) for WS RPC interface %v\n", allowedOriginsSet.ToSlice()))
 	if len(allowIPset) == 1 && allowIPset[0].String() == "0.0.0.0/0" {
 		log.Warn("WARNING: WS RPC interface is open to all IPs")
 		time.Sleep(time.Second)
@@ -124,9 +123,10 @@ func wsHandshakeValidator(allowedOrigins []string, allowIPset netutil.Netlist, r
 		checkip := func(r *http.Request, reverseProxy bool) error {
 			ip := getIP(r, reverseProxy)
 			if allowIPset.Contains(ip) {
+				log.Info("websocket: connection", "remote", ip)
 				return nil
 			}
-			log.Warn("unwarranted websocket request", "ip", ip)
+			log.Warn("unwarranted websocket request", "ip", ip, "allowset", allowIPset)
 			return fmt.Errorf("ip not allowed")
 		}
 
@@ -137,11 +137,11 @@ func wsHandshakeValidator(allowedOrigins []string, allowIPset netutil.Netlist, r
 
 		// check origin header
 		origin := strings.ToLower(req.Header.Get("Origin"))
-		if allowAllOrigins || origins.Contains(origin) {
-			return nil
+		if !allowAllOrigins && !allowedOriginsSet.Contains(origin) {
+			log.Warn(fmt.Sprintf("origin '%s' not allowed on WS-RPC interface\n", origin))
+			return fmt.Errorf("origin %s not allowed", origin)
 		}
-		// log.Warn(fmt.Sprintf("origin '%s' not allowed on WS-RPC interface\n", origin))
-		return fmt.Errorf("origin %s not allowed", origin)
+		return nil
 	}
 
 	return f

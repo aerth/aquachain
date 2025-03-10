@@ -10,10 +10,14 @@ build_dir ?= bin
 PREFIX ?= /usr/local
 INSTALL_DIR ?= $(PREFIX)/bin
 
+# used for cross-compilation
 maybeext := 
 ifeq (windows,$(GOOS))
 maybeext := .exe
 endif
+
+PWD ?= $(shell pwd)
+
 
 # the main target is bin/aquachain or bin/aquachain.exe
 shorttarget := bin/aquachain$(maybeext)
@@ -200,3 +204,19 @@ doc-print-env:
 	@egrep -rn 'EnvBool\("([^"]+)"\)' | sed -e 's/.*EnvBool("\([^"]\+\)").*/\1/' | sort -u
 	@echo String Env:
 	@egrep -rn 'sense.(LookupEnv|Getenv)\("([^"]+)"\)' | sed -e 's/.*("\([^"]\+\)").*/\1/' | sort -u
+
+rundev: bin/aquachain
+	@test "$(PWD)" != "/workspaces/aquachain" || (echo "warn: not in /workspaces/aquachain" && sleep 1)
+	@test "$(PWD)" != "/workspaces/aquachain" || (echo "warn: not in /workspaces/aquachain" && sleep 1)
+	@test "$(PWD)" != "/workspaces/aquachain" || (echo "warn: not in /workspaces/aquachain" && sleep 1)
+	@echo "serving on 0.0.0.0 (8543 and 8544) and allowing "127.0.0.1/24,172.18.0.1/32" for rpc and ws"
+	@echo "using ./tmpdatadir as datadir"
+	@echo "from host, can connect to the node with: aquachain attach ./tmpdatadir/aquachain.ipc"
+	@echo
+	@echo "to use arguments, run this from the container:"
+	@echo  "    make rundev args='-now help"
+	@echo 
+	@echo Press ENTER to continue or wait 3 seconds
+	@bash -c 'read -t 3 || true'
+	./bin/aquachain -rpc -rpcaddr 0.0.0.0 -ws -wsaddr 0.0.0.0 -allowip "127.0.0.1/24,172.18.0.1/32" \
+		-datadir tmpdatadir -debug ${args}

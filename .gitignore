@@ -77,3 +77,7 @@ profile.cov
 *.out
 TODO*
 *.no
+
+
+# otherwise gitignored by above
+!.devcontainer/devcontainer.json

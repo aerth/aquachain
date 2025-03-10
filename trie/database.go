@@ -293,14 +293,13 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 
 	logger := log.Info
 	if !report {
-		logger = log.Debug
+		logger = log.DebugSlow
 	}
-	logger("Persisted trie from memory database", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "dur", time.Since(start),
-		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 
+	logger("Persisted trie from mem db", "nodes", nodes-len(db.nodes), "size", storage-db.nodesSize, "dur", time.Since(start),
+		"gcnodes", db.gcnodes, "gcsize", db.gcsize, "gctime", db.gctime, "livenodes", len(db.nodes), "livesize", db.nodesSize)
 	// Reset the garbage collection statistics
 	db.gcnodes, db.gcsize, db.gctime = 0, 0, 0
-
 	return nil
 }
 

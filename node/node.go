@@ -370,7 +370,10 @@ func (n *Node) startRPC(services map[reflect.Type]Service, donefunc func()) erro
 	defer donefunc()
 	// gather allownet
 	allownet := parseAllowNet(n.config.RPCAllowIP)
-
+	if len(allownet) == 0 {
+		return fmt.Errorf("startRPC: no allowed IPs")
+	}
+	log.Warn("RPC allow IP", "allownet", allownet.String())
 	// Gather all the possible APIs to surface
 	apis := n.apis()
 	for _, service := range services {
@@ -508,7 +511,7 @@ func (n *Node) startHTTP(endpoint string, apis []rpc.API, whitelistModules []str
 	}
 	// Generate the whitelist based on the allowed modules
 	whitelist := make(map[string]bool)
-	log.Info("HTTP whitelist", "endpoint", endpoint, "modules", whitelistModules, "signing-enabled", !sense.IsNoSign(), "keystore-available", !sense.IsNoKeys())
+	log.Info("HTTP", "whitelist", allownet, "endpoint", endpoint, "modules", whitelistModules, "signing-enabled", !sense.IsNoSign(), "keystore-available", !sense.IsNoKeys())
 	for _, module := range whitelistModules {
 		whitelist[module] = true
 	}
