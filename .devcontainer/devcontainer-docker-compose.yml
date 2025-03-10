@@ -1,0 +1,22 @@
+# aqua devcontainer docker-compose file
+# this is used to add a bit more configuration to the devcontainer
+
+version: '3.8'
+services:
+  aquadevcontainer:
+    container_name: aquadevcontainer
+    build: 
+      context: ..
+      dockerfile: ./.devcontainer/devcontainer.Dockerfile
+    volumes:
+      - ..:/workspaces/aquachain:cached
+      - ../tmpdatadir:/tmpdatadir:cached
+    command: sleep infinity
+
+  explorer:
+    container_name: aquaexplorer
+    build: 
+      context: . # unused
+      dockerfile: explorer.Dockerfile
+    ports:
+      - "127.0.0.1:8000:8000"
