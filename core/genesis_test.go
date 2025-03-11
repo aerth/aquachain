@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
 
@@ -231,6 +232,30 @@ func TestSetupGenesis(t *testing.T) {
 			if stored.SetVersion(config.GetBlockVersion(stored.Number())) != test.wantHash {
 				t.Errorf("%s: block in DB has hash %s, want %s", test.name, stored.Hash(), test.wantHash)
 			}
+		}
+	}
+}
+
+func Test802018(t *testing.T) {
+	var m GenesisAlloc
+	m = decodePrealloc(allocData802018)
+	if len(m) != 1713 {
+		t.Fatalf("bad len, got %d, want 1713", len(m))
+	}
+
+	minAmtLog := big.NewInt(0).Mul(big.NewInt(1000), big.NewInt(params.Aqua))
+	for k, v := range m {
+		if v.Balance.Cmp(minAmtLog) >= 0 {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", k.Hex(), common.WeiToCoin(v.Balance))
+		}
+		if v.Balance.Cmp(big.NewInt(0)) <= 0 {
+			t.Fatalf("bad balance, got %v, want > 0", v.Balance)
+		}
+		if len(v.Storage) > 0 {
+			t.Fatalf("bad storage, got %v, want 0", len(v.Storage))
+		}
+		if len(v.Code) > 0 {
+			t.Fatalf("bad code, got %v, want 0", len(v.Code))
 		}
 	}
 }
