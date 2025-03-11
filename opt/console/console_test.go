@@ -113,8 +113,12 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 		DataDir:           workspace,
 		UseLightweightKDF: true,
 		Name:              t.Name(),
-		P2P:               &p2p.Config{ChainId: chainId},
-		RPCAllowIP:        []string{"127.0.0.1/32"},
+		P2P:               &p2p.Config{ChainId: chainId, Offline: true, ListenAddr: "127.0.0.3:21303"},
+		RPCAllowIP:        []string{"127.0.0.1/24"},
+		HTTPHost:          "", // disable HTTP server
+		WSHost:            "", // disable WS server
+		IPCPath:           "", // disable IPC server
+		// NoInProc:          true, // need this for local attach (subcommand: 'console' (defualt))
 	})
 	if err != nil {
 		t.Fatalf("failed to create node: %v", err)
@@ -124,7 +128,7 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 	genesis.Config = chaincfg // inject chaincfg into genesis
 	ethConf := &aqua.Config{
 		Genesis:  genesis,
-		Aquabase: common.HexToAddress(testAddress),
+		Aquabase: testAddress,
 		Aquahash: &aquahash.Config{
 			PowMode: aquahash.ModeTest,
 		},
@@ -202,15 +206,15 @@ func TestWelcome(t *testing.T) {
 
 	output := tester.output.String()
 	if want := "Welcome"; !strings.Contains(output, want) {
-		t.Fatalf("console output missing welcome message: have\n%s\nwant also %s", output, want)
+		t.Fatalf("console output missing welcome message: have\n%s\nwant also %q", output, want)
 	}
 	if want := fmt.Sprintf("instance: %s", testInstancePrefix); !strings.Contains(output, want) {
-		t.Fatalf("console output missing instance: have\n%s\nwant also %s", output, want)
+		t.Fatalf("console output missing instance: have\n%s\nwant also %q", output, want)
 	}
 	if want := fmt.Sprintf("coinbase: %s", testAddress); !strings.Contains(output, want) {
 		t.Fatalf("console output missing coinbase: have\n%s\nwant also %s", output, want)
 	}
-	if want := "at block: 0"; !strings.Contains(output, want) {
+	if want := fmt.Sprintf("at block: %d", 0); !strings.Contains(output, want) {
 		t.Fatalf("console output missing sync status: have\n%s\nwant also %s", output, want)
 	}
 	if want := fmt.Sprintf("datadir: %s", tester.workspace); !strings.Contains(output, want) {
