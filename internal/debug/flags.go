@@ -103,7 +103,12 @@ var Flags = []cli.Flag{
 }
 
 func SetupLog(ctx context.Context, cmd *cli.Command) error {
-	SetGlogger(Initglogger(cmd.Bool(debugFlag.Name), cmd.Int(verbosityFlag.Name), cmd.Bool(logcolorflag.Name), cmd.Bool(logjsonflag.Name)))
+	if cmd == nil {
+		log.SetGlogger(log.Initglogger(true, int64(log.LvlWarn), true, false))
+		log.Warn("Test Log Mode On")
+		return nil
+	}
+	log.SetGlogger(log.Initglogger(cmd.Bool(debugFlag.Name), cmd.Int(verbosityFlag.Name), cmd.Bool(logcolorflag.Name), cmd.Bool(logjsonflag.Name)))
 	return nil
 }
 
