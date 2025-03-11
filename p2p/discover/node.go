@@ -308,6 +308,10 @@ func HexID(in string) (NodeID, error) {
 	if in[:2] == "0x" {
 		in = in[2:]
 	}
+	defer func() {
+		log.Debug("hexid", "in", in, "out", fmt.Sprintf("%x", in))	
+	}()
+	
 	if l := len(in); l != NodeIDBits/4 { // 512 / 4 = 128
 		return NodeID{}, fmt.Errorf("wrong length, want 128 hex chars")
 	}
@@ -316,7 +320,6 @@ func HexID(in string) (NodeID, error) {
 	dehex, err := hex.Decode(id[:], []byte(in))
 	if err != nil {
 		return id, err
-
 	}
 	if dehex != len(id) {
 		return id, fmt.Errorf("invalid hex public key len %d", dehex)
@@ -348,7 +351,7 @@ func MustHexID(in string) NodeID {
 	return id
 }
 
-// PubkeyID returns a marshaled representation of the given public key.
+// PubkeyID returns a marshaled representation of (our) public key.
 func PubkeyID(pub *ecdsa.PublicKey) NodeID {
 	if pub == nil {
 		panic("nil public key")
