@@ -602,16 +602,13 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	if chaincfg == nil {
 		panic("switchDatadir: no chain config")
 	}
-	if chaincfg == nil && !cmd.IsSet(aquaflags.DataDirFlag.Name) {
+	if !cmd.IsSet(aquaflags.DataDirFlag.Name) {
 		Fatalf("No chain and no data directory specified. Please specify a chain with --chain or a data directory with --datadir")
 		return DirectoryConfig{}
 	}
-	chainName := "(unknown)"
-	if chaincfg != nil {
-		chainName = chaincfg.Name()
-		if chainName == "" {
-			panic("chain config has no name, use params.AddChainConfig or add a chain to params package")
-		}
+	chainName := chaincfg.Name()
+	if chainName == "" {
+		panic("chain config has no name, use params.AddChainConfig or add a chain to params package, before switchDatadir")
 	}
 	var cfg DirectoryConfig
 
