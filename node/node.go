@@ -147,7 +147,7 @@ func New(conf *Config) (*Node, error) {
 	if conf.Logger == nil {
 		conf.Logger = log.New()
 	}
-	log.Info("created a node:", "withKeystore", am != nil, "ephemeralKeystore", ephemeralKeystore)
+	log.Info("created a node:", "withKeystore", am != nil, "ephemeralKeystore", ephemeralKeystore, "caller2", log.Caller(2))
 	// Note: any interaction with Config that would create/touch files
 	// in the data directory or instance directory is delayed until Start.
 	return &Node{
