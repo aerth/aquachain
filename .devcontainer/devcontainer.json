@@ -11,12 +11,6 @@
 	// 	"context": "..",
 	// 	"dockerfile": "./devcontainer.Dockerfile"
 	// },
-
-	// this might only work locally?
-	"mounts": [
-		"source=${containerWorkspaceFolder}/.devcontainer/.bash_history,target=/${REMOTE_USER-vscode}/.bash_history,type=bind,consistency=cached"
-	],
-	
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
 		8543,
