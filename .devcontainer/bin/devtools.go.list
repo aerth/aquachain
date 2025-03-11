@@ -1,0 +1,4 @@
+golang.org/x/tools/cmd/stringer@latest
+github.com/kevinburke/go-bindata/v4/...@latest
+github.com/fjl/gencodec@latest
+google.golang.org/protobuf/cmd/protoc-gen-go@latest

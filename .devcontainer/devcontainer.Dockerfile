@@ -6,25 +6,20 @@ FROM mcr.microsoft.com/devcontainers/go:dev-1-bookworm
 RUN apt update && apt install -y \
 make file ncdu tree shfmt protobuf-compiler jq
 
-# # install everything else in /usr/local/bin/
-ADD /.devcontainer/bin/install_devtools.sh /install_devtools.sh
+# install tools
+ADD /.devcontainer/bin/install_devtools.sh /.devcontainer/bin/devtools.go.list /
 RUN GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all && rm -rf /go/*
+RUN go clean -cache -modcache
+RUN rm /install_devtools.sh /devtools.go.list
 
+# test the go-tools were installed
+RUN test -x /usr/local/bin/stringer
+
+# install bashrc stuff (for all users)
 # TODO: bash.bashrc does but does /etc/profile?
-RUN (echo; echo "export AQUA_DATADIR=/aquadatadir") >> /etc/profile
-RUN (echo; echo "export AQUA_DATADIR=/aquadatadir") >> /etc/bash.bashrc
-RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/aquachain/bin') >> /etc/profile
-RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/aquachain/bin') >> /etc/bash.bashrc
+RUN (echo; echo "export AQUA_DATADIR=/aquadatadir") | tee -a /etc/profile /etc/bash.bashrc
+RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/aquachain/bin') | tee -a /etc/profile /etc/bash.bashrc
 
 # this is a mountpoint for the aquachain datadir, and is AQUA_DATADIR env var in the container
-# the REMOTE_USER doesn't exist yet but the number works
+# the REMOTE_USER doesn't exist yet but the number works, and we assume the dev is 1000 (or root..) in the container
 RUN mkdir -p /aquadatadir; chown ${REMOTE_USER-1000}:${REMOTE_USER-1000} /aquadatadir
-
-# # && rm /install_devtools.sh && go clean -cache -modcache -r
-
-# # RUN adduser --disabled-password ${REMOTE_USER} && adduser ${REMOTE_USER} sudo
-# # USER vscode
-# # this wont work yet because the vscode user doesnt exist yet?
-# # RUN usermod -aG docker ${REMOTE_USER}
-
-

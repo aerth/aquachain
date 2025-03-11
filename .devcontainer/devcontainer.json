@@ -23,8 +23,12 @@
 		"aquaexplorer:8001"
 	],
 	"userEnvProbe": "interactiveShell",
-	// the bash history bit only works when running on your own machine
-	"postCreateCommand": "touch ${containerWorkspaceFolder-/workspaces/aquachain}/.devcontainer/.bash_history; touch /aquadatadir/bash_history; ln -s -f /aquadatadir/bash_history ~/.bash_history; cat /etc/os-release",
+	// the bash history bit only works when running on your own machine maybe
+	"postCreateCommand": {
+		// "installdevtools": "sudo GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all",
+		"trybashhistory": "touch ${containerWorkspaceFolder-/workspaces/aquachain}/.devcontainer/.bash_history; touch /aquadatadir/bash_history; ln -s -f /aquadatadir/bash_history ~/.bash_history;",
+		"welcome": "cat /etc/os-release"
+	},
 	// Configure tool-specific properties.
 	// "customizations": {},
 	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.

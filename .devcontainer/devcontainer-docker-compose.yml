@@ -12,6 +12,8 @@ services:
       - ..:/workspaces/aquachain:cached
       - ../tmpdatadir:/tmpdatadir:cached
     command: sleep infinity
+    environment:
+      - CGO_ENABLED=0
 
   explorer:
     container_name: aquaexplorer
