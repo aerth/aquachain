@@ -78,6 +78,7 @@ TODO*
 *.no
 *history
 /tmp*
-
+old*
+*.old
 # otherwise gitignored by above
 !.devcontainer/devcontainer.json
