@@ -399,15 +399,15 @@ func DefaultTestnet2GenesisBlock() *Genesis {
 func DefaultTestnet3GenesisBlock() *Genesis {
 	m := decodePrealloc(allocData802018) // from mainnet block 802018
 
+	faucet := common.HexToAddress("0x615dc0d304ca8d97263db40b10968696c4828306")
 	{ // TODO remove this for a real testnet3
-		x := common.HexToAddress("0x615dc0d304ca8d97263db40b10968696c4828306")
-		_, ok := m[x]
+		_, ok := m[faucet]
 		if ok {
 			panic("bad alloc file")
 		}
 		y := big.NewInt(params.Aqua)
 		y = y.Mul(y, big.NewInt(1_000))
-		m[x] = GenesisAccount{Balance: y}
+		m[faucet] = GenesisAccount{Balance: y}
 	}
 	return &Genesis{
 		Config:     params.Testnet3ChainConfig,
@@ -415,7 +415,7 @@ func DefaultTestnet3GenesisBlock() *Genesis {
 		GasLimit:   42000000,
 		Difficulty: big.NewInt(1), // testnet3 is not pow
 
-		ExtraData: append(append(make([]byte, 32), x[:]...), make([]byte, 65)...), // 32 empty bytes + 20 bytes signer address + 65 empty bytes
+		ExtraData: append(append(make([]byte, 32), faucet[:]...), make([]byte, 65)...), // 32 empty bytes + 20 bytes signer address + 65 empty bytes
 		Alloc:     m,
 	}
 }
