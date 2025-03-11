@@ -6,8 +6,11 @@ FROM mcr.microsoft.com/devcontainers/go:dev-1-bookworm
 RUN apt update && apt install -y \
 make file ncdu tree shfmt protobuf-compiler jq
 
-# install tools
+# copy tool installer
 ADD /.devcontainer/bin/install_devtools.sh /.devcontainer/bin/devtools.go.list /
+# add additional tools to install
+RUN echo "github.com/rs/zerolog/cmd/zerolog@latest" >> /devtools.go.list
+# install and cleanup
 RUN GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all && rm -rf /go/*
 RUN go clean -cache -modcache
 RUN rm /install_devtools.sh /devtools.go.list
