@@ -33,13 +33,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mattn/go-colorable"
 	"gitlab.com/aquachain/aquachain/common/log"
-	"gitlab.com/aquachain/aquachain/common/log/term"
 	"gitlab.com/aquachain/aquachain/common/sense"
 )
 
-// Handler is the global debugging handler.
 var Handler = new(HandlerT)
 
 // HandlerT implements the debugging API.
@@ -53,70 +50,18 @@ type HandlerT struct {
 	traceFile string
 }
 
-const (
-	VmoduleGood  = "p2p/discover=3,aqua/*=4,consensus/*=9,core/*=9,rpc/*=9,node/*=9,opt/*=9,p2p/discover/udp.go=0"
-	VmoduleGreat = "p2p/discover=3,aqua/*=9,consensus/*=9,core/*=9,rpc/*=9,node/*=9,opt/*=9"
-)
-
-var glogger *log.GlogHandler
-
-// set global logger
-func SetGlogger(l *log.GlogHandler) {
-	if glogger == l {
-		log.Warn("glogger already set!!!")
-		return
-	}
-	glogger = l
-	log.SetRootHandler(l)
-}
-
-func Initglogger(callerinfo bool, verbosityLvl64 int64, alwayscolor, isjson bool) *log.GlogHandler {
-	if glogger != nil {
-		return glogger
-	}
-	isjson = isjson && sense.Getenv("JSONLOG") != "0" && sense.Getenv("JSONLOG") != "off" // allow override false from init, even if -jsonlog is set
-	verbosityLvl := log.Lvl(verbosityLvl64)
-	if verbosityLvl == 0 {
-		verbosityLvl = log.LvlInfo
-	}
-	if verbosityLvl < 0 {
-		verbosityLvl = 0
-
-	}
-	usecolor := alwayscolor || sense.Getenv("COLOR") == "1" || (term.IsTty(os.Stderr.Fd()) && sense.Getenv("TERM") != "dumb")
-	output := io.Writer(os.Stderr)
-	if usecolor {
-		output = colorable.NewColorableStderr()
-	}
-	var form log.Format
-	if isjson {
-		form = log.JsonFormat()
-	} else {
-		form = log.TerminalFormat(usecolor)
-	}
-	h := log.StreamHandler(output, form)
-	if isjson && callerinfo {
-		h = log.CallerFileHandler(h)
-	} else if callerinfo {
-		log.PrintOrigins(true) // show line numbers
-	}
-	x := log.NewGlogHandler(h)
-	x.Verbosity(verbosityLvl)
-	// go log.Trace("new glogger", "verbosity", verbosityLvl, "color", alwayscolor, "json", isjson, "caller2", log.Caller(2))
-	return x
-}
-
 // Verbosity sets the log verbosity ceiling. The verbosity of individual packages
 // and source files can be raised using Vmodule.
 func (*HandlerT) Verbosity(level int) {
+	glogger := log.GetGlogger()
 	glogger.Verbosity(log.Lvl(level))
 }
 
 func wrapVmodule(pattern string) string {
 	if pattern == "good" {
-		pattern = VmoduleGood
+		pattern = log.VmoduleGood
 	} else if pattern == "great" {
-		pattern = VmoduleGreat
+		pattern = log.VmoduleGreat
 	}
 	return pattern
 }
@@ -124,12 +69,14 @@ func wrapVmodule(pattern string) string {
 // Vmodule sets the log verbosity pattern. See package log for details on the
 // pattern syntax.
 func (*HandlerT) Vmodule(pattern string) error {
+	glogger := log.GetGlogger()
 	return glogger.Vmodule(wrapVmodule(pattern))
 }
 
 // BacktraceAt sets the log backtrace location. See package log for details on
 // the pattern syntax.
 func (*HandlerT) BacktraceAt(location string) error {
+	glogger := log.GetGlogger()
 	return glogger.BacktraceAt(location)
 }
 
