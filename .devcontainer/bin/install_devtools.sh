@@ -1,10 +1,13 @@
 #!/bin/bash
 set -e
-mkdir -p ~/.local/bin || (echo "Failed to create ~/.local/bin" && exit 1)
+set -x # for testing
+this_script_dir=$(dirname $(realpath $0))
 PREFIX=${PREFIX:-${HOME}/.local}
+echo "Installing to prefix: $PREFIX -> $PREFIX/bin"
+mkdir -p ${PREFIX}/bin || (echo "Failed to create ${PREFIX}/bin" && exit 1)
 if [ "$PREFIX" != "/usr/local" ] && [[ ":$PATH:" != *":$PREFIX/bin:"* ]]; then
     echo "Please add ${PREFIX}/bin to your PATH or modify this script ($0) to install to a different location"
-    echo "example: export PATH=\$PATH:\$HOME/.local/bin"
+    echo "example: export PATH=\$PATH:${PREFIX}/bin"
     exit 1
 fi
 export GOBIN=${PREFIX}/bin
@@ -16,18 +19,25 @@ install_go_tools() {
     echo "Installing go tools"
     GOCMD=${GOCMD:-go}
     echo "Using GOCMD=${GOCMD}"
-    type "stringer" 2>/dev/null || ${GOCMD} install -v golang.org/x/tools/cmd/stringer@latest | sed 's/^/[stringer] /'
-    # TODO remove 'go-bindata' in favor of embed.FS
-    type "go-bindata" 2>/dev/null || ${GOCMD} install -v github.com/kevinburke/go-bindata/v4/...@latest
-    type "gencodec" 2>/dev/null || ${GOCMD} install -v github.com/fjl/gencodec@latest
-    type "protoc-gen-go" 2>/dev/null || ${GOCMD} install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    listpath=${1-${this_script_dir}/devtools.go.list}
+    packages=$(cat ${listpath})
+    for pkg in $packages; do
+        echo "Installing go tool $pkg to ${PREFIX}/bin"
+        GOCACHE= GOBIN=${PREFIX}/bin go install -v $pkg || exit 1
+    done
+    # GOCACHE= GOBIN=${PREFIX}/bin go install -v $(cat ${listpath}) || exit 1
+
+    # type "stringer" 2>/dev/null || ${GOCMD} install -v golang.org/x/tools/cmd/stringer@latest | sed 's/^/[stringer] /'
+    # # TODO remove 'go-bindata' in favor of embed.FS
+    # type "go-bindata" 2>/dev/null || ${GOCMD} install -v github.com/kevinburke/go-bindata/v4/...@latest
+    # type "gencodec" 2>/dev/null || ${GOCMD} install -v github.com/fjl/gencodec@latest
+    # type "protoc-gen-go" 2>/dev/null || ${GOCMD} install -v google.golang.org/protobuf/cmd/protoc-gen-go@latest
     type "protoc" 2>/dev/null || echo 'Please install protoc (eg. apt install protobuf-compiler)'
     type "npm" 2>/dev/null || echo 'Consider installing node.js and npm (eg. https://github.com/nvm-sh/nvm)'
     type "solc-static-linux" 2>/dev/null || echo 'Consider installing solc (eg. contrib/install_devtools.sh solc)'
-    type "solc-aq9ua" 2>/dev/null || echo 'Consider installing solc-aqua (eg. contrib/install_devtools.sh solc-aqua)'
+    type "solc-aqua" 2>/dev/null || echo 'Consider installing solc-aqua (eg. contrib/install_devtools.sh solc-aqua)'
     type "stringer" 2>/dev/null || (echo 'make sure you add $GOPATH/bin to your $PATH (currently is $PATH)' && exit 1)
     echo "Successfully installed go tools"
-    go clean -cache -modcache
     #	${GOCMD} install gitlab.com/aquachain/x/cmd/aqua-abigen@latest # TODO: fix the x repo (it should depend on this repo)
 }
 install_solc() {
@@ -41,11 +51,7 @@ install_solc() {
     which solc-static-linux || (echo "Failed to install solc" && exit 1)
 }
 
-if [ "$1" == "solc" ]; then
-    install_solc || exit 1
-    echo "Successfully installed solc"
-    exit 0
-fi
+
 install_solc_aqua() {
     set -e
     test -f ${solc_bin_path}-aqua && echo "....solc-aqua already installed" && mv ${solc_bin_path}-aqua{,.bak}
@@ -76,10 +82,6 @@ EOF
     chmod +x "${PREFIX}/bin/solc-aqua"
     echo "Successfully installed solc-aqua"
 }
-if [ "$1" == "solc-aqua" ]; then
-    install_solc_aqua || exit 1
-    exit 0
-fi
 
 if [ "$1" == "all" ]; then
     echo "Installing all dev tools"
@@ -88,8 +90,18 @@ if [ "$1" == "all" ]; then
     echo "Successfully installed all dev tools"
     exit 0
 fi
+if [ "$1" == "solc" ]; then
+    install_solc || exit 1
+    echo "Successfully installed solc"
+    exit 0
+fi
+if [ "$1" == "solc-aqua" ]; then
+    install_solc_aqua || exit 1
+    exit 0
+fi
 
 # default only go tools
+echo Installing only go tools
 install_go_tools
 exitcode=$?
 if [ $exitcode -ne 0 ]; then
