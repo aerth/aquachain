@@ -17,7 +17,7 @@ RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/a
 RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/aquachain/bin') >> /etc/bash.bashrc
 
 # this is a mountpoint for the aquachain datadir, and is AQUA_DATADIR env var in the container
-# the REMOTE_USER doesn't exist yet but the number does`
+# the REMOTE_USER doesn't exist yet but the number works
 RUN mkdir -p /aquadatadir; chown ${REMOTE_USER-1000}:${REMOTE_USER-1000} /aquadatadir
 
 # # && rm /install_devtools.sh && go clean -cache -modcache -r
