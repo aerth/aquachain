@@ -521,9 +521,13 @@ func (srv *Server) startDiscovery() error {
 		conn     *net.UDPConn
 		realaddr *net.UDPAddr
 	)
+
 	addr, err := net.ResolveUDPAddr("udp", srv.ListenAddr)
 	if err != nil {
 		return err
+	}
+	if addr.Port == 0 {
+		addr.Port = srv.ChainConfig().DefaultPortNumber
 	}
 	conn, err = net.ListenUDP("udp4", addr)
 	if err != nil {
@@ -883,7 +887,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		srv.log.Trace("Failed RLPx handshake", "addr", c.fd.RemoteAddr(), "conn", c.flags, "err", err)
 		return err
 	}
-	clog := srv.log.New("id", c.id, "addr", c.fd.RemoteAddr(), "conn", c.flags)
+	clog := srv.log.New("id", c.id, "addr", c.fd.RemoteAddr(), "conn", c.flags) // TODO fix log.New
 	clog.Info("RLPx handshake complete")
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {

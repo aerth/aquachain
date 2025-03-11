@@ -547,7 +547,7 @@ func (t *udp) write(toaddr *net.UDPAddr, what string, packet []byte) error {
 	_, err := t.conn.WriteToUDP(packet, toaddr)
 	if err != nil {
 		log.Trace(">> "+what, "addr", toaddr, "err", err)
-	} else {
+	} else if debugpacket {
 		log.Trace(">> "+what, "addr", toaddr)
 	}
 	return err

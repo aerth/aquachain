@@ -24,10 +24,8 @@ import (
 
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/metrics"
-	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/p2p"
 	"gitlab.com/aquachain/aquachain/p2p/discover"
-	"gitlab.com/aquachain/aquachain/p2p/netutil"
 	"gitlab.com/aquachain/aquachain/rpc"
 )
 
@@ -137,66 +135,69 @@ func (api *PrivateAdminAPI) PeerEvents(ctx context.Context) (*rpc.Subscription, 
 	return rpcSub, nil
 }
 
-// StartRPC starts the HTTP RPC API server.
-func (api *PrivateAdminAPI) StartRPC(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
-	ok := sense.Getenv("AQUA_ALLOW_RPC")
-	if ok != "true" {
-		return false, fmt.Errorf("StartRPC not allowed, set AQUA_ALLOW_RPC=true to enable this method")
-	}
-	log.Warn("Starting RPC", "host", host, "port", port, "cors", cors, "apis", apis, "vhosts", vhosts)
-	api.node.lock.Lock()
-	defer api.node.lock.Unlock()
+// // StartRPC starts the HTTP RPC API server.
+// func (api *PrivateAdminAPI) StartRPC(host *string, port *int, cors *string, apis *string, vhosts *string) (bool, error) {
+// 	ok := sense.Getenv("AQUA_ALLOW_RPC")
+// 	if ok != "true" {
+// 		return false, fmt.Errorf("StartRPC not allowed, set AQUA_ALLOW_RPC=true to enable this method")
+// 	}
+// 	api.node.lock.Lock()
+// 	defer api.node.lock.Unlock()
 
-	if api.node.httpHandler != nil {
-		return false, fmt.Errorf("HTTP RPC already running on %s", api.node.httpEndpoint)
-	}
+// 	if api.node.httpHandler != nil {
+// 		return false, fmt.Errorf("HTTP RPC already running on %s", api.node.httpEndpoint)
+// 	}
 
-	if host == nil {
-		h := DefaultHTTPHost
-		if api.node.config.HTTPHost != "" {
-			h = api.node.config.HTTPHost
-		}
-		host = &h
-	}
-	if port == nil {
-		port = &api.node.config.HTTPPort
-	}
-	endpoint := fmt.Sprintf("%s:%d", *host, *port)
+// 	if host == nil {
+// 		h := DefaultHTTPHost
+// 		if api.node.config.HTTPHost != "" {
+// 			h = api.node.config.HTTPHost
+// 		}
+// 		host = &h
+// 	}
+// 	if port == nil {
+// 		port = &api.node.config.HTTPPort
+// 	}
+// 	if *port == 0 {
+// 		return false, fmt.Errorf("HTTP RPC port is not set")
+// 	}
+// 	endpoint := fmt.Sprintf("%s:%d", *host, *port)
+// 	log.Warn("Starting RPC on "+endpoint, "host", host, "port", port, "cors", cors, "apis", apis, "vhosts", vhosts)
 
-	allowedOrigins := api.node.config.HTTPCors
-	if cors != nil {
-		allowedOrigins = nil
-		for _, origin := range strings.Split(*cors, ",") {
-			allowedOrigins = append(allowedOrigins, strings.TrimSpace(origin))
-		}
-	}
+// 	allowedOrigins := api.node.config.HTTPCors
+// 	if cors != nil {
+// 		allowedOrigins = nil
+// 		for _, origin := range strings.Split(*cors, ",") {
+// 			allowedOrigins = append(allowedOrigins, strings.TrimSpace(origin))
+// 		}
+// 	}
 
-	allowedVHosts := api.node.config.HTTPVirtualHosts
-	if vhosts != nil {
-		allowedVHosts = nil
-		for _, vhost := range strings.Split(*host, ",") {
-			allowedVHosts = append(allowedVHosts, strings.TrimSpace(vhost))
-		}
-	}
+// 	allowedVHosts := api.node.config.HTTPVirtualHosts
+// 	if vhosts != nil {
+// 		allowedVHosts = nil
+// 		for _, vhost := range strings.Split(*host, ",") {
+// 			allowedVHosts = append(allowedVHosts, strings.TrimSpace(vhost))
+// 		}
+// 	}
 
-	allownet := parseAllowNet(api.node.config.RPCAllowIP)
-	if len(allownet) == 0 {
-		return false, fmt.Errorf("missing AllowIP")
-	}
-	behindreverseproxy := api.node.config.RPCBehindProxy
-	modules := api.node.httpWhitelist
-	if apis != nil {
-		modules = nil
-		for _, m := range strings.Split(*apis, ",") {
-			modules = append(modules, strings.TrimSpace(m))
-		}
-	}
+// 	allownet := parseAllowNet(api.node.config.RPCAllowIP)
+// 	if len(allownet) == 0 {
+// 		return false, fmt.Errorf("missing AllowIP")
+// 	}
+// 	behindreverseproxy := api.node.config.RPCBehindProxy
+// 	modules := api.node.httpWhitelist
+// 	if apis != nil {
+// 		modules = nil
+// 		for _, m := range strings.Split(*apis, ",") {
+// 			modules = append(modules, strings.TrimSpace(m))
+// 		}
+// 	}
 
-	if err := api.node.startHTTP(endpoint, api.node.rpcAPIs, modules, allowedOrigins, allowedVHosts, allownet, behindreverseproxy); err != nil {
-		return false, err
-	}
-	return true, nil
-}
+// 	if err := api.node.startHTTP(endpoint, api.node.rpcAPIs, modules, allowedOrigins, allowedVHosts, allownet, behindreverseproxy); err != nil {
+// 		return false, err
+// 	}
+// 	return true, nil
+// }
 
 // StopRPC terminates an already running HTTP RPC API endpoint.
 func (api *PrivateAdminAPI) StopRPC() (bool, error) {
@@ -210,52 +211,52 @@ func (api *PrivateAdminAPI) StopRPC() (bool, error) {
 	return true, nil
 }
 
-// StartWS starts the websocket RPC API server.
-func (api *PrivateAdminAPI) StartWS(host *string, port *int, allowedOrigins *string, allownet netutil.Netlist, apis *string) (bool, error) {
-	api.node.lock.Lock()
-	defer api.node.lock.Unlock()
+// // StartWS starts the websocket RPC API server.
+// func (api *PrivateAdminAPI) StartWS(host *string, port *int, allowedOrigins *string, allownet netutil.Netlist, apis *string) (bool, error) {
+// 	api.node.lock.Lock()
+// 	defer api.node.lock.Unlock()
 
-	if api.node.wsHandler != nil {
-		return false, fmt.Errorf("WebSocket RPC already running on %s", api.node.wsEndpoint)
-	}
+// 	if api.node.wsHandler != nil {
+// 		return false, fmt.Errorf("WebSocket RPC already running on %s", api.node.wsEndpoint)
+// 	}
 
-	if host == nil {
-		h := DefaultWSHost
-		if api.node.config.WSHost != "" {
-			h = api.node.config.WSHost
-		}
-		host = &h
-	}
-	if port == nil {
-		p := api.node.config.WSPort
-		port = &p
-	}
+// 	if host == nil {
+// 		h := DefaultWSHost
+// 		if api.node.config.WSHost != "" {
+// 			h = api.node.config.WSHost
+// 		}
+// 		host = &h
+// 	}
+// 	if port == nil {
+// 		p := api.node.config.WSPort
+// 		port = &p
+// 	}
 
-	origins := api.node.config.WSOrigins
-	if origins == nil && api.node.config.HTTPVirtualHosts != nil {
-		origins = api.node.config.HTTPVirtualHosts
-		log.Warn("Websocket origins not set, using HTTP virtual hosts")
-	}
-	if allowedOrigins != nil {
-		origins = nil
-		for _, origin := range strings.Split(*allowedOrigins, ",") {
-			origins = append(origins, strings.TrimSpace(origin))
-		}
-	}
+// 	origins := api.node.config.WSOrigins
+// 	if origins == nil && api.node.config.HTTPVirtualHosts != nil {
+// 		origins = api.node.config.HTTPVirtualHosts
+// 		log.Warn("Websocket origins not set, using HTTP virtual hosts")
+// 	}
+// 	if allowedOrigins != nil {
+// 		origins = nil
+// 		for _, origin := range strings.Split(*allowedOrigins, ",") {
+// 			origins = append(origins, strings.TrimSpace(origin))
+// 		}
+// 	}
 
-	modules := api.node.config.WSModules
-	if apis != nil {
-		modules = nil
-		for _, m := range strings.Split(*apis, ",") {
-			modules = append(modules, strings.TrimSpace(m))
-		}
-	}
+// 	modules := api.node.config.WSModules
+// 	if apis != nil {
+// 		modules = nil
+// 		for _, m := range strings.Split(*apis, ",") {
+// 			modules = append(modules, strings.TrimSpace(m))
+// 		}
+// 	}
 
-	if err := api.node.startWS(fmt.Sprintf("%s:%d", *host, *port), api.node.rpcAPIs, modules, origins, api.node.config.WSExposeAll, allownet, api.node.config.RPCBehindProxy); err != nil {
-		return false, err
-	}
-	return true, nil
-}
+// 	if err := api.node.startWS(fmt.Sprintf("%s:%d", *host, *port), api.node.rpcAPIs, modules, origins, api.node.config.WSExposeAll, allownet, api.node.config.RPCBehindProxy); err != nil {
+// 		return false, err
+// 	}
+// 	return true, nil
+// }
 
 // StopRPC terminates an already running websocket RPC API endpoint.
 func (api *PrivateAdminAPI) StopWS() (bool, error) {
