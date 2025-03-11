@@ -59,7 +59,6 @@ profile.cov
 
 
 /docs
-/tmp*
 /*.toml
 /*.txt
 .env
@@ -77,7 +76,8 @@ profile.cov
 *.out
 TODO*
 *.no
-
+*history
+/tmp*
 
 # otherwise gitignored by above
 !.devcontainer/devcontainer.json
