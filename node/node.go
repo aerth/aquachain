@@ -182,8 +182,12 @@ var NoCountdown = false
 
 // Start create a live P2P node and starts running it, immediately returning
 func (n *Node) Start(ctx context.Context) error {
+	log.Info("node is starting", "caller1", log.Caller(1), "caller2", log.Caller(2), "caller3", log.Caller(3))
 	n.lock.Lock()
 	defer n.lock.Unlock()
+	if ctx == nil {
+		return fmt.Errorf("context is nil")
+	}
 	n.ctx = ctx
 	if n.config.P2P.ChainId == 0 {
 		return fmt.Errorf("no chain id")
@@ -696,7 +700,7 @@ func (n *Node) Wait() {
 	}
 }
 
-// Restart terminates a running node and boots up a new one in its place. If the
+// Restart is alias for Stop and Start. Restart terminates a running node and boots up a new one in its place. If the
 // node isn't running, an error is returned.
 func (n *Node) Restart() error {
 	n.log.Info("Restarting P2P node")
