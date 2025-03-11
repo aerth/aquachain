@@ -50,6 +50,7 @@ var (
 var this_app *cli.Command
 
 func init() {
+	// main package initialize the buildinfo with values from Makefile/-X linker flags
 	subcommands.SetBuildInfo(gitCommit, buildDate, gitTag, clientIdentifier)
 }
 
@@ -64,26 +65,19 @@ var helpCommand = &cli.Command{
 	UsageText: "aquachain help",
 }
 
-func doinit() *cli.Command {
-	return Doinit()
-}
-
-func Doinit() *cli.Command {
-
+// setupMain ... for this main package only
+func setupMain() *cli.Command {
 	if !sense.EnvBool("HELP2") {
 		subcommands.InitHelp()
 	}
-
 	defaults := subcommands.NewApp(clientIdentifier, gitCommit, "the Aquachain command line interface")
 	this_app = &cli.Command{
-		Name:    defaults.Name,
-		Usage:   defaults.Usage,
-		Version: defaults.Version,
-
+		Name:                       defaults.Name,
+		Usage:                      defaults.Usage,
+		Version:                    defaults.Version,
 		EnableShellCompletion:      defaults.EnableShellCompletion,
 		ShellCompletionCommandName: defaults.ShellCompletionCommandName,
 		Suggest:                    defaults.Suggest,
-
 		Flags: append([]cli.Flag{
 			aquaflags.NoEnvFlag,
 			aquaflags.DoitNowFlag,
@@ -113,14 +107,14 @@ func Doinit() *cli.Command {
 		HideVersion:     true,
 		Copyright:       "Copyright 2018-2025 The Aquachain Authors",
 	}
-	{
+	{ // add and sort flags
 		app := this_app
 		// app.Flags = append(app.Flags, debug.Flags...)
 		app.Flags = append(app.Flags, aquaflags.NodeFlags...)
 		app.Flags = append(app.Flags, aquaflags.RPCFlags...)
 		app.Flags = append(app.Flags, aquaflags.ConsoleFlags...)
+		sort.Sort((cli.FlagsByName)(this_app.Flags))
 	}
-	sort.Sort((cli.FlagsByName)(this_app.Flags))
 	return this_app
 }
 
@@ -132,10 +126,11 @@ var consoledefault = &cli.Command{
 		if x.Root() == nil {
 			return fmt.Errorf("woops")
 		}
-		return x.Run(ctx, cmd.Args().Slice())
+		return x.Run(ctx, os.Args[1:]) // no subcommand given so we know all the args are flags :)
 	},
 }
 
+// afterFunc only for this main package
 func afterFunc(context.Context, *cli.Command) error {
 	mainctxs.MainCancelCause()(fmt.Errorf("bye"))
 	debug.Exit()
@@ -143,6 +138,7 @@ func afterFunc(context.Context, *cli.Command) error {
 	return nil
 }
 
+// beforeFunc only for this main package
 func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := debug.Setup(ctx, cmd); err != nil {
@@ -175,7 +171,7 @@ func main() {
 		time.Sleep(time.Second * 10) // should never happen
 		log.Warn("context has been done for 10 seconds and we are still running... consider sending SIGINT")
 	}()
-	app := doinit()
+	app := setupMain()
 	if err := app.Run(mainctxs.Main(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: running %s failed with error %+v\n", app.Name, err)
 	}
