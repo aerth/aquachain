@@ -27,6 +27,7 @@ import (
 	"gitlab.com/aquachain/aquachain/crypto"
 	"gitlab.com/aquachain/aquachain/opt/console"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
+	"gitlab.com/aquachain/aquachain/subcommands/buildinfo"
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
@@ -171,6 +172,10 @@ func accountList(ctx context.Context, cmd *cli.Command) error {
 	if cmd.Bool(aquaflags.NoKeysFlag.Name) {
 		Fatalf("Listing accounts is disabled (-nokeys)")
 	}
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	stack, _ := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, mainctxs.MainCancelCause())
 	var index int
 	for _, wallet := range stack.AccountManager().Wallets() {
@@ -272,6 +277,10 @@ func ambiguousAddrRecovery(ks *keystore.KeyStore, err *keystore.AmbiguousAddrErr
 
 // accountCreate creates a new account into the keystore defined by the CLI flags.
 func accountCreate(_ context.Context, cmd *cli.Command) error {
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	cfg := AquachainConfig{Node: DefaultNodeConfig(gitCommit, clientIdentifier)}
 	// Load config file.
 	if file := cmd.String(aquaflags.ConfigFileFlag.Name); file != "" {
@@ -303,6 +312,10 @@ func accountUpdate(ctx context.Context, cmd *cli.Command) error {
 	if cmd.Args().Len() == 0 {
 		Fatalf("No accounts specified to update")
 	}
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	stack, _ := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, mainctxs.MainCancelCause())
 	ks := stack.AccountManager().Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 
