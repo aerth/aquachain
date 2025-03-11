@@ -17,18 +17,18 @@ function algoname(version) {
 // fetch the info from the node
 function getinfo() {
     try {
-        var instance = web3.version.node;
+        var instance = web3.version.node; // request
     } catch (e) {
         console.log("error getting instance: " + e);
         var instance = "unknown";
     }
     var info = {
         "instance": instance,
-        "chainId": Number(aqua.chainId(), 16), // hex->dec
-        "gasPrice": web3.fromWei(aqua.gasPrice, 'gwei'),
+        "chainId": Number(aqua.chainId(), 16), // request, hex->dec 
+        "gasPrice": web3.fromWei(aqua.gasPrice, 'gwei'), // request (gasPrice)
     }
     try {
-        info["coinbase"] = aqua.coinbase;
+        info["coinbase"] = aqua.coinbase; // request
     } catch (e) {
         if (e.message.indexOf("no-keybase mode") !== -1) {
             info["coinbase"] = "NO_KEYS";
@@ -37,7 +37,7 @@ function getinfo() {
         info["coinbase"] = undefined;
         }
      }
-     var head = aqua.getBlock('latest');
+     var head = aqua.getBlock('latest'); // request
      var headinfo = {
          "block": head.number,
          "timestamp": head.timestamp,
@@ -50,7 +50,7 @@ function getinfo() {
     info["headinfo"] = headinfo;
 
     try {
-        this.admin && (info["datadir"] = this.admin.datadir);
+        this.admin && (info["datadir"] = this.admin.datadir); // request
     } catch (e) { }
 
     return info;
@@ -61,10 +61,10 @@ function welcome() {
     var info = getinfo();
     var headinfo = info.headinfo;
 
-    console.log("instance:   " + info.instance);
-    console.log("at block:   " + headinfo.block + " (" + new Date(1000 * headinfo.timestamp) + ")");
-    console.log("    head:   " + headinfo.hash);
-    console.log("coinbase:   " + info.coinbase);
+    console.log("  instance: " + info.instance);
+    console.log("  at block: " + headinfo.block + " (" + new Date(1000 * headinfo.timestamp) + ")");
+    console.log("      head: " + headinfo.hash);
+    console.log("  coinbase: " + info.coinbase);
     console.log("  gasPrice: " + info.gasPrice + " gigawei");
     console.log("  gasLimit: " + headinfo.gasLimit + " units");
     var diffstr = "";
