@@ -39,6 +39,7 @@ import (
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/opt/console"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
+	"gitlab.com/aquachain/aquachain/subcommands/buildinfo"
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 	"gitlab.com/aquachain/aquachain/trie"
 )
@@ -368,6 +369,10 @@ func copyDb(ctx context.Context, cmd *cli.Command) error {
 }
 
 func removeDB(ctx context.Context, cmd *cli.Command) error {
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	stack, _ := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, mainctxs.MainCancelCause())
 
 	name := "chaindata"

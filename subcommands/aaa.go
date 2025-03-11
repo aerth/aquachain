@@ -24,18 +24,17 @@ import (
 
 var mainctx, maincancel = mainctxs.Main(), mainctxs.MainCancelCause()
 
-var gitCommit, buildDate, gitTag, clientIdentifier string
-
+// SetBuildInfo also calls 'buildinfo.SetBuildInfo'
+//
+// TODO: deduplicate by using buildinfo.BuildInfo in this package
 func SetBuildInfo(commit, date, tag string, clientIdentifier0 string) {
-	gitCommit = commit
-	buildDate = date
-	gitTag = tag
-	clientIdentifier = clientIdentifier0
+
 	buildinfo.SetBuildInfo(buildinfo.BuildInfo{
-		GitCommit: commit,
-		BuildDate: date,
-		GitTag:    tag,
-		BuildTags: "",
+		GitCommit:        commit,
+		BuildDate:        date,
+		GitTag:           tag,
+		BuildTags:        "",
+		ClientIdentifier: clientIdentifier0,
 	})
 }
 
@@ -92,6 +91,10 @@ var dumpConfigCommand = &cli.Command{
 
 // dumpConfig is the dumpconfig command.
 func dumpConfig(ctx context.Context, cmd *cli.Command) error {
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	var opts []Cfgopt
 	if cmd.String("config") == "none" {
 		opts = append(opts, NoPreviousConfig)
@@ -116,6 +119,10 @@ func dumpConfig(ctx context.Context, cmd *cli.Command) error {
 var StartNodeCommand = startNode
 
 func MakeFullNode(ctx context.Context, cmd *cli.Command) *node.Node {
+	buildinfo := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo.GitCommit
+	clientIdentifier := buildinfo.ClientIdentifier
+
 	stack, cfg := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, maincancel)
 	RegisterAquaService(mainctx, stack, cfg.Aqua, cfg.Node.NodeName())
 

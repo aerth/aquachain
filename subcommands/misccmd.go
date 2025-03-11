@@ -108,7 +108,13 @@ func makedag(_ context.Context, cmd *cli.Command) error {
 	return nil
 }
 
+// TODO: make version struct that is a TextMarshaler so other callers can use this same info
 func printVersion(_ context.Context, cmd *cli.Command) error {
+	buildinfo0 := buildinfo.GetBuildInfo()
+	gitCommit := buildinfo0.GitCommit
+	clientIdentifier := buildinfo0.ClientIdentifier
+	gitTag := buildinfo0.GitTag
+	buildDate := buildinfo0.BuildDate
 	fmt.Println(strings.Title(clientIdentifier), params.Version)
 	if gitCommit != "" {
 		fmt.Println("Git Commit:", gitCommit)
