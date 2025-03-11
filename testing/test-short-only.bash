@@ -10,7 +10,7 @@ export CGO_ENABLED=${CGO_ENABLED-0}
 		echo "go vet failed"
 		exit 1
 	fi
-	packagelist=${TESTPACKAGELIST-$(go list ./... 2>/dev/null | egrep -v 'p2p|fetchers|downloader|peer|simulation|opt\/console')}
+	packagelist=${TESTPACKAGELIST-$(go list ./... 2>/dev/null | egrep -v 'p2p|fetchers|downloader|peer|simulation')}
 	tmpfile=$(mktemp tmpaqua-short-tests.XXXXXX.tmp)
 	echo testshorttmpfile=$tmpfile
 	echo "running short tests for packages: $packagelist" 1>&2
