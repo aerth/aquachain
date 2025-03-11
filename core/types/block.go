@@ -30,6 +30,7 @@ import (
 
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/hexutil"
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/crypto"
 	"gitlab.com/aquachain/aquachain/crypto/sha3"
 	"gitlab.com/aquachain/aquachain/params"
@@ -194,7 +195,11 @@ func rlpHash(version byte, x interface{}) (h common.Hash) {
 	switch version {
 	case 0, 1: // ethash
 		hw := sha3.NewKeccak256()
-		rlp.Encode(hw, x)
+		if err := rlp.Encode(hw, x); err != nil {
+			log.GracefulShutdownf("encountered error: %v", err)
+			time.Sleep(time.Second * 30) // hopefully doesn't return
+			panic("encountered error" + err.Error())
+		}
 		hw.Sum(h[:0])
 		return h
 	default: // argon2id switch

@@ -308,7 +308,7 @@ func HexID(in string) (NodeID, error) {
 	if in[:2] == "0x" {
 		in = in[2:]
 	}
-	if l := len(in); l != NodeIDBits/4 {
+	if l := len(in); l != NodeIDBits/4 { // 512 / 4 = 128
 		return NodeID{}, fmt.Errorf("wrong length, want 128 hex chars")
 	}
 
@@ -322,15 +322,17 @@ func HexID(in string) (NodeID, error) {
 		return id, fmt.Errorf("invalid hex public key len %d", dehex)
 	}
 	copy(id[:], id[:dehex])
-	pubk := &ecdsa.PublicKey{
-		Curve: crypto.S256(),
-		X:     new(big.Int).SetBytes(id[:]),
-		Y:     new(big.Int),
-	}
+	if true { // TODO: this cant work yet
+		pubk := &ecdsa.PublicKey{
+			Curve: crypto.S256(),
+			X:     new(big.Int).SetBytes(id[:NodeIDBits/8]),
+			Y:     new(big.Int).SetBytes(id[NodeIDBits/8:]),
+		}
 
-	if !crypto.S256().IsOnCurve(pubk.X, pubk.Y) {
-		// log.Warn("invalid hex public key", "id", id)
-		// return id, errors.New("invalid hex public key")
+		if !crypto.S256().IsOnCurve(pubk.X, pubk.Y) {
+			log.Warn("invalid hex public key", "id", id)
+			// return id, errors.New("invalid hex public key")
+		}
 	}
 
 	return id, nil

@@ -111,6 +111,7 @@ func EncodeToBytes(val interface{}) ([]byte, error) {
 // Please see the documentation of Encode for the encoding rules.
 func EncodeToReader(val interface{}) (size int, r io.Reader, err error) {
 	eb := encbufPool.Get().(*encbuf)
+	defer encbufPool.Put(eb)
 	eb.reset()
 	if err := eb.encode(val); err != nil {
 		return 0, nil, err
@@ -182,6 +183,7 @@ func (w *encbuf) Write(b []byte) (int, error) {
 func (w *encbuf) encode(val interface{}) error {
 	rval := reflect.ValueOf(val)
 	ti, err := cachedTypeInfo(rval.Type(), tags{})
+	// log.Warn("encode", "type", rval.Type(), "kind", rval.Kind(), "ti", ti, "thing", fmt.Sprintf("%#v", val), "err", err)
 	if err != nil {
 		return err
 	}

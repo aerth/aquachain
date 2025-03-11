@@ -124,7 +124,7 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 		t.Fatalf("failed to create node: %v", err)
 	}
 
-	genesis := core.DeveloperGenesisBlock(15, common.Address{})
+	genesis := core.NewDeveloperGenesisBlock(15, common.Address{})
 	genesis.Config = chaincfg // inject chaincfg into genesis
 	ethConf := &aqua.Config{
 		Genesis:  genesis,

@@ -225,10 +225,14 @@ func (c Config) HTTPEndpoint() string {
 	return getEndpoint(c.HTTPHost, c.HTTPPort)
 }
 
-// DefaultHTTPEndpoint returns the HTTP endpoint used by default.
-func DefaultHTTPEndpoint() string {
-	return (Config{HTTPHost: DefaultHTTPHost, HTTPPort: DefaultHTTPPort}).HTTPEndpoint()
-}
+// // DefaultHTTPEndpoint returns the HTTP endpoint used by default.
+// func DefaultHTTPEndpoint(chaincfg *params.ChainConfig) string {
+// 	defport := chaincfg.DefaultRpcPort
+// 	if defport == 0 {
+// 		log.Warn("chaincfg.DefaultHttpPort() returned 0, using random port")
+// 	}
+// 	return (Config{HTTPHost: DefaultHTTPHost, HTTPPort: defport}).HTTPEndpoint()
+// }
 
 // WSEndpoint resolves an websocket endpoint based on the configured host interface
 // and port parameters.
@@ -243,11 +247,11 @@ func getEndpoint(host string, port int) string {
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
-// DefaultWSEndpoint returns the websocket endpoint used by default.
-func DefaultWSEndpoint() string {
-	config := &Config{WSHost: DefaultWSHost, WSPort: DefaultWSPort}
-	return config.WSEndpoint()
-}
+// // DefaultWSEndpoint returns the websocket endpoint used by default.
+// func DefaultWSEndpoint() string {
+// 	config := &Config{WSHost: DefaultWSHost, WSPort: DefaultWSPort}
+// 	return config.WSEndpoint()
+// }
 
 func (c *Config) NodeName() string {
 	return GetNodeName(c)

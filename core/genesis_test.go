@@ -35,7 +35,7 @@ import (
 // for generating delloc array for HF4 (only on mainnet)
 func TestDefaultGenesisAlloc(t *testing.T) {
 	t.SkipNow()
-	m := DefaultGenesisBlock().Alloc
+	m := NewDefaultGenesisBlock().Alloc
 	fmt.Println("Bad Balances:", len(m))
 	aquawei := big.NewFloat(params.Aqua)
 	_ = aquawei
@@ -50,20 +50,20 @@ func TestDefaultGenesisAlloc(t *testing.T) {
 		}
 	}
 }
-func TestDefaultGenesisBlock(t *testing.T) {
-	block := DefaultGenesisBlock().ToBlock(nil)
+func TestNewDefaultGenesisBlock(t *testing.T) {
+	block := NewDefaultGenesisBlock().ToBlock(nil)
 	if block.Hash() != params.MainnetGenesisHash {
 		t.Errorf("wrong mainnet genesis hash, got %x, want %x", block.Hash(), params.MainnetGenesisHash)
 	}
-	block = DefaultTestnetGenesisBlock().ToBlock(nil)
+	block = NewDefaultTestnetGenesisBlock().ToBlock(nil)
 	if block.Hash() != params.TestnetGenesisHash {
 		t.Errorf("wrong testnet genesis hash, got %x, want %x", block.Hash(), params.TestnetGenesisHash)
 	}
-	block = DefaultTestnet2GenesisBlock().ToBlock(nil)
+	block = NewDefaultTestnet2GenesisBlock().ToBlock(nil)
 	if block.Hash() != params.Testnet2GenesisHash {
 		t.Errorf("wrong testnet2 genesis hash, got %x, want %x", block.Hash(), params.Testnet2GenesisHash)
 	}
-	block = DefaultTestnet3GenesisBlock().ToBlock(nil)
+	block = NewDefaultTestnet3GenesisBlock().ToBlock(nil)
 	if block.Hash() != params.Testnet3GenesisHash {
 		t.Errorf("wrong testnet3 genesis hash, got %x, want %x", block.Hash(), params.Testnet3GenesisHash)
 	}
@@ -110,7 +110,7 @@ func TestSetupGenesis(t *testing.T) {
 		{
 			name: "mainnet block in DB, genesis == nil",
 			fn: func(db aquadb.Database) (*params.ChainConfig, common.Hash, error) {
-				DefaultGenesisBlock().MustCommit(db)
+				NewDefaultGenesisBlock().MustCommit(db)
 				return SetupGenesisBlock(db, nil)
 			},
 			wantHash:   params.MainnetGenesisHash,
@@ -129,7 +129,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet",
 			fn: func(db aquadb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultTestnetGenesisBlock())
+				return SetupGenesisBlock(db, NewDefaultTestnetGenesisBlock())
 			},
 			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.TestnetGenesisHash},
 			wantHash:   params.TestnetGenesisHash,
@@ -139,7 +139,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet2",
 			fn: func(db aquadb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultTestnet2GenesisBlock())
+				return SetupGenesisBlock(db, NewDefaultTestnet2GenesisBlock())
 			},
 			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.Testnet2GenesisHash},
 			wantHash:   params.Testnet2GenesisHash,
@@ -149,7 +149,7 @@ func TestSetupGenesis(t *testing.T) {
 			name: "custom block in DB, genesis == testnet3",
 			fn: func(db aquadb.Database) (*params.ChainConfig, common.Hash, error) {
 				customg.MustCommit(db)
-				return SetupGenesisBlock(db, DefaultTestnet3GenesisBlock())
+				return SetupGenesisBlock(db, NewDefaultTestnet3GenesisBlock())
 			},
 			wantErr:    &GenesisMismatchError{Stored: customghash, New: params.Testnet3GenesisHash},
 			wantHash:   params.Testnet3GenesisHash,
