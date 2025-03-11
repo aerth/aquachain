@@ -308,6 +308,7 @@ func (db *Database) commit(hash common.Hash, batch aquadb.Batch) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.nodes[hash]
 	if !ok {
+		log.Warn("Tried to commit non-pending trie node", "hash", hash)
 		return nil
 	}
 	for child := range node.children {
@@ -319,7 +320,10 @@ func (db *Database) commit(hash common.Hash, batch aquadb.Batch) error {
 		return err
 	}
 	// If we've reached an optimal match size, commit and start over
-	if batch.ValueSize() >= aquadb.IdealBatchSize {
+
+	overIdealSize := batch.ValueSize() >= aquadb.IdealBatchSize
+	// log.Trace("Committing trie node to disk", "hash", hash, "size", len(node.blob), "overIdealSize", overIdealSize)
+	if overIdealSize {
 		if err := batch.Write(); err != nil {
 			return err
 		}

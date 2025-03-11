@@ -30,9 +30,9 @@ import (
 
 const (
 	DefaultHTTPHost = "127.0.0.1" // Default host interface for the HTTP RPC server
-	DefaultHTTPPort = 8543        // Default TCP port for the HTTP RPC server
-	DefaultWSHost   = "127.0.0.1" // Default host interface for the websocket RPC server
-	DefaultWSPort   = 8544        // Default TCP port for the websocket RPC server
+	// DefaultHTTPPort = 8543        // Default TCP port for the HTTP RPC server
+	DefaultWSHost = "127.0.0.1" // Default host interface for the websocket RPC server
+	// DefaultWSPort   = 8544        // Default TCP port for the websocket RPC server
 )
 
 // DefaultConfig contains reasonable default settings.
@@ -41,21 +41,21 @@ const (
 func NewDefaultConfig() *Config {
 	datadir := defaultDataDir()
 	x := &Config{
-		Name:        "", // must be set before GetNodeName
-		DataDir:     datadir,
-		HTTPPort:    DefaultHTTPPort,
+		Name:    "", // must be set before GetNodeName
+		DataDir: datadir,
+		// HTTPPort:    DefaultHTTPPort,
 		HTTPModules: []string{"aqua", "eth", "net", "web3"},
-		WSPort:      DefaultWSPort,
-		WSModules:   []string{"aqua", "eth", "net", "web3"},
+		// WSPort:      DefaultWSPort,
+		WSModules: []string{"aqua", "eth", "net", "web3"},
 		P2P: &p2p.Config{
-			ListenAddr: "0.0.0.0:21303", // tcp+udp, ipv4 only
+			ListenAddr: "0.0.0.0:24242", // tcp+udp, ipv4 only. this is modified by node.NewNode
 			MaxPeers:   20,
 			NAT:        "none", // none
 		},
 		RPCBehindProxy: sense.EnvBool("RPC_BEHIND_PROXY"),
 		UserIdent:      sense.Getenv("AQUA_USERIDENT"),
-		HTTPHost:       "",
-		WSHost:         "",
+		HTTPHost:       "", // no rpc
+		WSHost:         "", // no ws
 		KeyStoreDir:    sense.Getenv("AQUA_KEYSTORE_DIR"),
 	}
 	return x

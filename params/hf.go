@@ -18,8 +18,11 @@ package params
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"strings"
+
+	"gitlab.com/aquachain/aquachain/rlp"
 )
 
 type ForkMap map[int]*big.Int
@@ -33,6 +36,12 @@ func (f ForkMap) String() (s string) {
 	}
 	return strings.TrimSpace(s)
 }
+
+func (f ForkMap) EncodeRLP(io.Writer) error {
+	return fmt.Errorf("found it")
+}
+
+var _ rlp.Encoder = ForkMap{}
 
 // HeaderVersion is not stored in db, or rlp encoded, or sent over the network other than JSON-RPC block headers
 type HeaderVersion byte

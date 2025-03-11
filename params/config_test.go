@@ -17,9 +17,13 @@
 package params
 
 import (
+	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"testing"
+
+	"gitlab.com/aquachain/aquachain/common"
 )
 
 func TestCheckCompatible(t *testing.T) {
@@ -126,6 +130,49 @@ func TestChainConfigs(t *testing.T) {
 		}
 		if (v.DefaultPortNumber == 0) && !shouldBeZero {
 			t.Errorf("missing default discovery port for % 10v %d port=%d", name, chainid, v.DefaultPortNumber)
+		}
+	}
+}
+
+func TestConfigHash(t *testing.T) {
+	a := AllChainConfigs()
+	last := common.Hash{}
+	for i := range a {
+		v := a[i]
+		if v == nil {
+			t.Error("nil config")
+			continue
+		}
+		cfghash := a[i].Hash()
+		fmt.Fprintf(os.Stderr, "%s %s\n", v.Name(), cfghash.Hex())
+		if cfghash == last {
+			t.Error("duplicate hash")
+			return
+		}
+		last = cfghash
+		h := cfghash.String()
+		switch h {
+		case "0xfb280bcf298edcbbe02fb1e76ea9eeeb087828fe1e72d9b4afa046860ea4b4c0":
+			t.Error("blocked hash")
+		case "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470":
+			t.Error("blocked hash")
+		}
+		if h2 := rlpHash2(1, a[i]); h2 != cfghash {
+			t.Error("hash mismatch")
+
+		}
+
+		if !IsValid(v) {
+			t.Error("invalid config")
+		}
+		if v.ChainId == nil {
+			t.Error("nil chain id")
+		}
+		if v.ChainId.BitLen() == 0 {
+			t.Error("zero chain id")
+		}
+		if v.Hash() == (common.Hash{}) {
+			t.Error("nil hash")
 		}
 	}
 }

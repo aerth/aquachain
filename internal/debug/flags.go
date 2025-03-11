@@ -59,7 +59,7 @@ var (
 	debugFlag = &cli.BoolFlag{
 		Name:  "debug",
 		Usage: "Prepends log messages with call-site location (file and line number)",
-		Value: sense.EnvBool("DEBUG"),
+		Value: sense.EnvBool("DEBUG") || sense.EnvBool("LOG_CALLERS"),
 	}
 	pprofFlag = &cli.BoolFlag{
 		Name:  "pprof",

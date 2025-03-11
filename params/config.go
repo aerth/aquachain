@@ -17,13 +17,18 @@
 package params
 
 import (
+	"bytes"
 	"fmt"
+	"maps"
 	"math/big"
 	"os"
 
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/toml"
+	"gitlab.com/aquachain/aquachain/crypto"
+	"gitlab.com/aquachain/aquachain/crypto/sha3"
+	"gitlab.com/aquachain/aquachain/rlp"
 )
 
 var (
@@ -129,6 +134,8 @@ var (
 		HF:                   AquachainHF,
 		DefaultPortNumber:    21303,
 		DefaultBootstrapPort: 21000,
+		DefaultRpcPort:       8543,
+		DefaultWsPort:        8544,
 	}
 
 	// TestnetChainConfig contains the chain parameters to run a node on the Aquachain test network.
@@ -143,6 +150,8 @@ var (
 		HF:                   TestnetHF,
 		DefaultPortNumber:    21304,
 		DefaultBootstrapPort: 21001,
+		DefaultRpcPort:       8553,
+		DefaultWsPort:        8554,
 	}
 
 	// Testnet2ChainConfig contains the chain parameters to run a node on the Testnet2 test network.
@@ -157,6 +166,8 @@ var (
 		HF:                   Testnet2HF,
 		DefaultPortNumber:    21305,
 		DefaultBootstrapPort: 21002,
+		DefaultRpcPort:       8563,
+		DefaultWsPort:        8564,
 	}
 	// Testnet3ChainConfig contains the chain parameters to run a node on the Testnet2 test network.
 	Testnet3ChainConfig = &ChainConfig{
@@ -171,6 +182,8 @@ var (
 		HF:                   Testnet3HF,
 		DefaultPortNumber:    21306,
 		DefaultBootstrapPort: 21003,
+		DefaultRpcPort:       8573,
+		DefaultWsPort:        8574,
 	}
 
 	// AllAquahashProtocolChanges contains every protocol change (EIPs) introduced
@@ -178,10 +191,10 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllAquahashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(AquahashConfig), nil, AllHF, 21398, 21099}
-	AllCliqueProtocolChanges   = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}, AllHF, 21398, 21098}
+	AllAquahashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(AquahashConfig), nil, AllHF, 21398, 21099, 8998, 8999}
+	AllCliqueProtocolChanges   = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}, AllHF, 21398, 21098, 8998, 8999}
 
-	TestChainConfig = &ChainConfig{big.NewInt(3), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(AquahashConfig), nil, TestHF, 21397, 21097}
+	TestChainConfig = &ChainConfig{big.NewInt(3), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(AquahashConfig), nil, TestHF, 21397, 21097, 8998, 8999}
 	// TestRules       = TestChainConfig.Rules(new(big.Int))
 )
 
@@ -210,15 +223,51 @@ type ChainConfig struct {
 	ConstantinopleBlock *big.Int `json:"constantinopleBlock,omitempty"` // Constantinople switch block (nil = no fork, 0 = already activated)
 
 	// Various consensus engines
-	Aquahash *AquahashConfig `json:"aquahash,omitempty"`
-	Clique   *CliqueConfig   `json:"clique,omitempty"`
+	Aquahash *AquahashConfig `json:"aquahash,omitempty" rlp:"-"`
+	Clique   *CliqueConfig   `json:"clique,omitempty" rlp:"-"`
 
 	// HF Scheduled Maintenance Hardforks
-	HF ForkMap `json:"hf,omitempty"`
+	HF ForkMap `json:"hf,omitempty" rlp:"-"`
 
 	// DefaultPortNumber used by p2p package if nonzero
-	DefaultPortNumber    int `json:"portNumber,omitempty"`    // eg. 21303, udp and tcp
-	DefaultBootstrapPort int `json:"bootstrapPort,omitempty"` // eg. 21000, udp
+	DefaultPortNumber    int `json:"portNumber,omitempty" rlp:"-"`    // eg. 21303, udp and tcp
+	DefaultBootstrapPort int `json:"bootstrapPort,omitempty" rlp:"-"` // eg. 21000, udp
+	DefaultRpcPort       int `json:"rpcPort,omitempty" rlp:"-"`       // eg. 8543, tcp
+	DefaultWsPort        int `json:"wsPort,omitempty" rlp:"-"`        // eg. 8544, tcp
+}
+
+func rlpHash(hashVersion byte, x interface{}) (h common.Hash) {
+	println("hashing version", hashVersion, ": ", x)
+	switch hashVersion {
+	case 0, 1: // ethash
+		hw := sha3.NewKeccak256()
+		if err := rlp.Encode(hw, x); err != nil {
+			panic(err)
+		}
+		hw.Sum(h[:0])
+		return h
+	default: // argon2id switch
+		buf := &bytes.Buffer{}
+		rlp.Encode(buf, x)
+		return common.BytesToHash(crypto.VersionHash(hashVersion, buf.Bytes()))
+	}
+}
+
+// Hash TODO make real
+func (cfg *ChainConfig) Hash() common.Hash {
+	println("hashing", cfg.Name(), "chainId", cfg.ChainId)
+	if cfg.Aquahash == nil && cfg.Clique == nil {
+		panic("hmm")
+	}
+	return rlpHash(1, cfg)
+}
+
+func rlpHash2(algo byte, x interface{}) common.Hash {
+	buf, err := rlp.EncodeToBytes(x)
+	if err != nil {
+		panic(err.Error())
+	}
+	return common.BytesToHash(crypto.VersionHash(algo, buf))
 }
 
 func LoadChainConfigFile(path string) (*ChainConfig, error) {
@@ -266,9 +315,9 @@ func (chainConfig *ChainConfig) GetGenesisVersion() HeaderVersion {
 func GetChainConfig(name string) *ChainConfig {
 	switch name {
 	default:
-		log.Warn("Unknown chain config", "name", name)
+		log.Warn("Unknown chain config, try aqua or testnet3", "name", name)
 		return nil
-	case "aqua", "mainnet", "aquachain":
+	case "aqua":
 		return MainnetChainConfig
 	case "testnet":
 		return TestnetChainConfig
@@ -342,9 +391,7 @@ func AddChainConfig(name string, cfg *ChainConfig) {
 	log.Warn("adding chain config", "name", name, "chainid", cfg.ChainId.String(), "HF", cfg.HF.String())
 	allChainConfigs = append(allChainConfigs, cfg)
 	newChainnames := make(map[string]*ChainConfig)
-	for k, v := range chainNames {
-		newChainnames[k] = v
-	}
+	maps.Copy(newChainnames, chainNames)
 	newChainnames[name] = cfg
 	chainNames = newChainnames
 }

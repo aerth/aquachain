@@ -51,14 +51,14 @@ const (
 	bucketMinDistance = hashBits - nBuckets // Log distance of closest bucket
 
 	// IP address limits.
-	bucketIPLimit, bucketSubnet = 2, 24 // at most 2 addresses from the same /24
-	tableIPLimit, tableSubnet   = 10, 24
+	bucketIPLimit, bucketSubnet = 2, 24  // at most 2 addresses from the same /24
+	tableIPLimit, tableSubnet   = 10, 24 // 10 per /24
 
 	maxBondingPingPongs = 16 // Limit on the number of concurrent ping/pong interactions
 	maxFindnodeFailures = 3  // Nodes exceeding this limit are dropped
 
 	refreshInterval    = 10 * time.Minute
-	revalidateInterval = 10 * time.Second
+	revalidateInterval = 20 * time.Second
 	copyNodesInterval  = 30 * time.Second
 	seedMinTableTime   = 5 * time.Minute
 	seedCount          = 30

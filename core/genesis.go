@@ -159,7 +159,7 @@ func SetupGenesisBlock(db aquadb.Database, genesis *Genesis) (*params.ChainConfi
 	stored := GetCanonicalHash(db, 0)
 	if (stored == common.Hash{}) {
 		if genesis == nil {
-			genesis = DefaultGenesisBlock()
+			genesis = NewDefaultGenesisBlock()
 			log.Info("Writing default genesis block", "chain", genesis.Config.Name())
 		} else {
 			log.Info("Writing custom genesis block")
@@ -347,24 +347,27 @@ func GenesisBlockForTesting(db aquadb.Database, addr common.Address, balance *bi
 	return g.MustCommit(db)
 }
 
-func DefaultGenesisByName(name string) *Genesis {
-	switch name {
-	case "aqua":
-		return DefaultGenesisBlock()
-	case "testnet":
-		return DefaultTestnetGenesisBlock()
-	case "testnet2":
-		return DefaultTestnet2GenesisBlock()
-	case "testnet3":
-		return DefaultTestnet3GenesisBlock()
-	default:
-		log.Warn("unknown genesis block", "chain", name)
-		return nil
+var (
+	byName = map[string]*Genesis{
+		"aqua":     NewDefaultGenesisBlock(),
+		"testnet":  NewDefaultTestnetGenesisBlock(),
+		"testnet2": NewDefaultTestnet2GenesisBlock(),
+		"testnet3": NewDefaultTestnet3GenesisBlock(),
 	}
+)
+
+func DefaultGenesisByName(name string) *Genesis {
+	if g, ok := byName[name]; ok { // use byName to avoid creating a new genesis block
+		return g
+	}
+	log.Error("unknown genesis block", "chain", name)
+	return nil
+
 }
 
 // DefaultGenesisBlock returns the Aquachain main net genesis block.
-func DefaultGenesisBlock() *Genesis {
+func NewDefaultGenesisBlock() *Genesis {
+	log.Warn("Using default genesis block", "caller", log.Caller(1))
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      42,
@@ -375,7 +378,7 @@ func DefaultGenesisBlock() *Genesis {
 }
 
 // DefaultTestnetGenesisBlock returns the Ropsten network genesis block.
-func DefaultTestnetGenesisBlock() *Genesis {
+func NewDefaultTestnetGenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.TestnetChainConfig,
 		Nonce:      66,
@@ -385,7 +388,7 @@ func DefaultTestnetGenesisBlock() *Genesis {
 }
 
 // DefaultTestnet2GenesisBlock returns the Testnet2 network genesis block.
-func DefaultTestnet2GenesisBlock() *Genesis {
+func NewDefaultTestnet2GenesisBlock() *Genesis {
 	return &Genesis{
 		Config:     params.Testnet2ChainConfig,
 		Timestamp:  1492009146,
@@ -396,7 +399,7 @@ func DefaultTestnet2GenesisBlock() *Genesis {
 
 // DefaultTestnet3GenesisBlock returns the Testnet3 network genesis block.
 // This is a temporary chain for testing purposes ONLY.
-func DefaultTestnet3GenesisBlock() *Genesis {
+func NewDefaultTestnet3GenesisBlock() *Genesis {
 	m := decodePrealloc(allocData802018) // from mainnet block 802018
 
 	faucet := common.HexToAddress("0x615dc0d304ca8d97263db40b10968696c4828306")
@@ -422,7 +425,7 @@ func DefaultTestnet3GenesisBlock() *Genesis {
 
 // DeveloperGenesisBlock returns the 'aquachain --dev' genesis block. Note, this must
 // be seeded with the
-func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
+func NewDeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 	// Override the default period to the user requested one
 	config := *params.AllCliqueProtocolChanges
 	// '-chain dev', disable pow, enable clique

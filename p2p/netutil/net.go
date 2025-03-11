@@ -202,6 +202,7 @@ func CheckRelayIP(sender, addr net.IP) error {
 	if IsLAN(addr) && !IsLAN(sender) {
 		return errLAN
 	}
+	// log.Debug("CheckRelayIP Allowed", "sender", sender, "addr", addr)
 	return nil
 }
 

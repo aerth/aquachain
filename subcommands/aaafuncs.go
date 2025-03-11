@@ -935,7 +935,7 @@ func SetAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 				Fatalf("Failed to unlock developer account: %v", err)
 			}
 			log.Info("Using developer account", "address", developer.Address)
-			cfg.Genesis = core.DeveloperGenesisBlock(uint64(cmd.Int(aquaflags.DeveloperPeriodFlag.Name)), developer.Address)
+			cfg.Genesis = core.NewDeveloperGenesisBlock(uint64(cmd.Int(aquaflags.DeveloperPeriodFlag.Name)), developer.Address)
 			if cfg.Genesis.Config.Clique == nil {
 				panic("nope")
 			}
@@ -1007,13 +1007,14 @@ func MakeChainDatabase(cmd *cli.Command, stack *node.Node) aquadb.Database {
 	return chainDb
 }
 
-func MakeGenesis(cmd *cli.Command) *core.Genesis {
-	chain := cmd.String(aquaflags.ChainFlag.Name)
-	if chain != "" {
-		return core.DefaultGenesisByName(chain)
-	}
-	return core.DefaultGenesisBlock()
-}
+//	func MakeGenesis(cmd *cli.Command) *core.Genesis {
+//		chain := cmd.String(aquaflags.ChainFlag.Name)
+//		if chain != "" {
+//			return core.DefaultGenesisByName(chain)
+//		}
+//		panic("no chain no genesis")
+//		// return core.DefaultGenesisBlock()
+//	}
 func GenesisByChain(chain string) *core.Genesis {
 	return core.DefaultGenesisByName(chain)
 }
@@ -1038,7 +1039,7 @@ func MakeChain(cmd *cli.Command, stack *node.Node) (chain *core.BlockChain, chai
 	var err error
 	chainDb = MakeChainDatabase(cmd, stack)
 
-	config, _, err := core.SetupGenesisBlock(chainDb, MakeGenesis(cmd))
+	config, _, err := core.SetupGenesisBlock(chainDb, GenesisByChain(cmd.String(aquaflags.ChainFlag.Name)))
 	if err != nil {
 		Fatalf("%v", err)
 	}

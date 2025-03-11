@@ -382,8 +382,8 @@ var (
 	}
 	RPCPortFlag = &cli.IntFlag{
 		Name:  "rpcport",
-		Usage: "HTTP-RPC server listening port",
-		Value: node.DefaultHTTPPort,
+		Usage: "HTTP-RPC server listening port (default is 8543 for aqua, 8743 for testnet3)",
+		Value: 0,
 	}
 	RPCCORSDomainFlag = &cli.StringFlag{
 		Name:  "rpccorsdomain",
@@ -424,8 +424,8 @@ var (
 	}
 	WSPortFlag = &cli.IntFlag{
 		Name:  "wsport",
-		Usage: "WS-RPC server listening port",
-		Value: node.DefaultWSPort,
+		Usage: "WS-RPC server listening port (default is 8544 for aqua, 8744 for testnet3)",
+		Value: 0,
 	}
 	WSApiFlag = &cli.StringFlag{
 		Name:  "wsapi",

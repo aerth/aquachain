@@ -142,9 +142,11 @@ func makeEndpoint(addr *net.UDPAddr, tcpPort uint16) rpcEndpoint {
 	return rpcEndpoint{IP: ip, UDP: uint16(addr.Port), TCP: tcpPort}
 }
 
+var errLowPort = errors.New("low port")
+
 func (t *udp) nodeFromRPC(sender *net.UDPAddr, rn rpcNode) (*Node, error) {
 	if rn.UDP <= 1024 {
-		return nil, errors.New("low port")
+		return nil, errLowPort
 	}
 	// if 30000 <= rn.UDP && rn.UDP <= 39999 {
 	// 	return nil, errors.New("not aqua")
@@ -258,7 +260,7 @@ type Config struct {
 // ListenUDP returns a new table that listens for UDP packets on laddr.
 func ListenUDP(c conn, cfg Config) (*Table, error) {
 	log.Info("starting p2p discovery udp listener", "addr", c.LocalAddr())
-	tab, _, err := newUDP(c, cfg)
+	tab, _, err := newUDPServer(c, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -266,7 +268,7 @@ func ListenUDP(c conn, cfg Config) (*Table, error) {
 	return tab, nil
 }
 
-func newUDP(c conn, cfg Config) (*Table, *udp, error) {
+func newUDPServer(c conn, cfg Config) (*Table, *udp, error) {
 	closer := debug.AddLoop()
 	defer closer()
 	udp := &udp{
@@ -357,13 +359,18 @@ func (t *udp) findnode(toid NodeID, toaddr *net.UDPAddr, target NodeID) ([]*Node
 		neighborsPacket = ethneighborsPacket
 		findnodePacket = ethfindnodePacket
 	}
-	errc := t.pending(toid, neighborsPacket, func(r interface{}) bool {
+	errc := t.pending(toid, neighborsPacket, func(r any) bool {
+		log.Trace("findnode reply", "from", toaddr.String(),
+			"nodes", len(r.(*neighbors).Nodes), "list", r.(*neighbors).Nodes)
 		reply := r.(*neighbors)
 		for _, rn := range reply.Nodes {
 			nreceived++
 			n, err := t.nodeFromRPC(toaddr, rn)
 			if err != nil {
-				log.Trace("Invalid neighbor node received", "ip", rn.IP, "addr", toaddr, "err", err)
+				if err != errLowPort {
+					log.Trace("Invalid neighbor node received", "ip", rn.IP, "port", rn.UDP,
+						"addr", toaddr, "err", err)
+				}
 				continue
 			}
 			nodes = append(nodes, n)
@@ -592,7 +599,7 @@ func (t *udp) readLoop(unhandled chan<- ReadPacket) {
 			continue
 		} else if err != nil {
 			// Shut down the loop for permament errors.
-			log.Debug("UDP read error", "err", err)
+			log.Warn("UDP read error", "err", err)
 			return
 		}
 		if t.handlePacket(from, buf[:nbytes]) != nil && unhandled != nil {
