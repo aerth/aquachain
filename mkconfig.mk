@@ -84,9 +84,12 @@ LINKER_FLAGS += -buildid= -X main.gitCommit=${COMMITHASH} -X main.gitTag=${versi
 LINKER_FLAGS += -X gitlab.com/aquachain/aquachain/params.buildtags=${TAGS64}
 
 # codename to be used in version string
+# if release, use 'release', if blank, use 'dev'
 ifeq (,$(codename))
 ifeq (1,$(release))
 codename=release
+else
+codename=dev
 endif
 endif
 ifneq (,$(codename))
