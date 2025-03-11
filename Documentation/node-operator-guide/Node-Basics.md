@@ -41,7 +41,10 @@ This is useful if you just want to use the AQUA Console to analyze your current 
 You know if you are in the aquachain console if you see the **AQUA>** prompt.
 It is a (basic) javascript console, with (tab) auto-complete and (up/down) command history.
 
-- Load a local script with the `loadScript('filename')` function.
+- Load a local script with the `loadScript('filename')` function. 
+- use flag `-jspath` to specify the working directory for importing local scripts
 - List accounts with `aqua.accounts`
 - Check all balances with `balance()`
+- Re-show Welcome info: welcome()
+- If you have the ability to sign, `send` starts an interactive transaction builder.
 
