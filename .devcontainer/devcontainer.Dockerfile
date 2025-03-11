@@ -10,6 +10,7 @@ make file ncdu tree shfmt protobuf-compiler jq
 ADD /.devcontainer/bin/install_devtools.sh /install_devtools.sh
 RUN GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all && rm -rf /go/*
 
+# TODO: bash.bashrc does but does /etc/profile?
 RUN (echo; echo "export AQUA_DATADIR=/aquadatadir") >> /etc/profile
 RUN (echo; echo "export AQUA_DATADIR=/aquadatadir") >> /etc/bash.bashrc
 RUN (echo; echo 'export PATH=${PATH}:/workspaces/aquachain-dev/bin:/workspaces/aquachain/bin') >> /etc/profile
