@@ -165,6 +165,19 @@ const (
 	WalletDropped
 )
 
+func (w WalletEventType) String() string {
+	switch w {
+	case WalletArrived:
+		return "WalletArrived"
+	case WalletOpened:
+		return "WalletOpened"
+	case WalletDropped:
+		return "WalletDropped"
+	default:
+		return "UnknownWalletEvent"
+	}
+}
+
 // WalletEvent is an event fired by an account backend when a wallet arrival or
 // departure is detected.
 type WalletEvent struct {
