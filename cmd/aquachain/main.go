@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/user"
 	"runtime"
 	"sort"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/opt/console"
+	"gitlab.com/aquachain/aquachain/p2p/discover"
 	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/subcommands"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
@@ -172,6 +174,12 @@ func main() {
 		log.Warn("context has been done for 10 seconds and we are still running... consider sending SIGINT")
 	}()
 	app := setupMain()
+
+	if err := checkRuntimeEnvironment(); err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: %+v\n", err)
+		os.Exit(1)
+	}
+
 	if err := app.Run(mainctxs.Main(), os.Args); err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: running %s failed with error %+v\n", app.Name, err)
 	}
@@ -180,4 +188,23 @@ func main() {
 	} else if time.Since(subcommands.GetStartTime()) > time.Second*4 {
 		log.Debug("graceful shutdown achieved", "subcommand", app.Name)
 	}
+}
+
+func checkRuntimeEnvironment() error {
+	// check working direcotry is not /
+	wd, err := os.Getwd()
+	if err == nil && wd == "/" {
+		return fmt.Errorf("working directory is /, indicates a misconfiguration")
+	}
+	// check if the user is running as root
+	u, err := user.Current()
+	if err == nil && u.Uid == "0" {
+		return fmt.Errorf("do not run as root")
+	}
+	// check time is not too far off
+	if err := discover.CheckClockDrift(); err != nil {
+		return fmt.Errorf("time check failed: %v", err)
+	}
+
+	return nil
 }

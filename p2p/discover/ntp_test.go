@@ -16,7 +16,9 @@ func TestNtp(t *testing.T) {
 		t.Fatalf("sntpDrift failed: %v", err)
 	}
 	t.Logf("NTP offset: %v", offset)
-	checkClockDrift()
+	if err := CheckClockDrift(); err != nil {
+		t.Fatalf("CheckClockDrift failed: %v", err)
+	}
 	time.Sleep(1 * time.Second)
 	println("OK")
 }
