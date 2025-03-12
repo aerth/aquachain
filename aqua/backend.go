@@ -456,8 +456,11 @@ func (s *Aquachain) Engine() consensus.Engine          { return s.engine }
 func (s *Aquachain) ChainDb() aquadb.Database          { return s.chainDb }
 func (s *Aquachain) IsListening() bool                 { return true } // Always listening
 func (s *Aquachain) AquaVersion() int {
-	if s.protocolManager != nil {
+	if s.protocolManager != nil && len(s.protocolManager.SubProtocols) > 0 {
 		return int(s.protocolManager.SubProtocols[0].Version)
+	}
+	if s.config.SyncMode == downloader.OfflineSync {
+		return 0
 	}
 	log.Warn("Aquachain protocol manager not available, no aqua protocol version")
 	return 0
