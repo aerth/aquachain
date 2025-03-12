@@ -175,7 +175,7 @@ func GracefulShutdown(cause error) {
 	}
 	cancelcausefunc(cause) // this should shutdown the stack
 	go func() {
-		for i := 10; i > 0; i++ {
+		for i := 10; i > 0; i-- {
 			root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "seconds", i})
 			time.Sleep(time.Second)
 		}
