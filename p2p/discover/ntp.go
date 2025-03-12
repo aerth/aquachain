@@ -41,20 +41,27 @@ func (s durationSlice) Len() int           { return len(s) }
 func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
 func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
-// checkClockDrift queries an NTP server for clock drifts and warns the user if
+// CheckClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
-func checkClockDrift() {
+//
+// Error is returned only for startup checks. For periodic checks, only a warning log.
+func CheckClockDrift() error {
+	log.Debug("Performing NTP sanity check")
 	drift, err := sntpDrift(ntpChecks)
 	if err != nil {
-		return
+		return err
 	}
 	if drift < -driftThreshold || drift > driftThreshold {
 		log.Warn(fmt.Sprintf("System clock seems off by %v, which will prevent network connectivity", drift))
 		log.Warn("Please enable network time synchronisation in system settings. (try running 'ntpdate-debian' as root)")
+		return ErrTimeDrift
 	} else {
 		log.Debug("NTP sanity check done", "drift", drift)
 	}
+	return nil
 }
+
+var ErrTimeDrift = fmt.Errorf("system clock is off by more than %v", driftThreshold)
 
 // sntpDrift does a naive time resolution against an NTP server and returns the
 // measured drift. This method uses the simple version of NTP. It's not precise
