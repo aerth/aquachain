@@ -141,21 +141,20 @@ func DotEnv(extras ...string) error {
 	return err
 }
 
+// Getenv calls Dotenv (if it hasn't been called yet) and then os.Getenv
 func Getenv(name string) string {
 	DotEnv()
 	return os.Getenv(name) // should be the only os.Getenv call.
 }
 
-var LookupEnv = osLookupEnv
-
-func osLookupEnv(name string) (string, bool) {
+func LookupEnv(name string) (string, bool) {
 	DotEnv()                  // noop if already done
 	return os.LookupEnv(name) // should be the only os.LookupEnv call in the codebase to make sure a .env file is sourced before any env vars are read
 }
 
 // EnvBool returns false if empty/unset/falsy, true if otherwise non-empty
 func EnvBool(name string) bool {
-	x, ok := osLookupEnv(name)
+	x, ok := LookupEnv(name)
 	if !ok {
 		return false
 	}
@@ -166,7 +165,7 @@ func EnvBool(name string) bool {
 //
 // a bit different logic than !EnvBool
 func EnvBoolDisabled(name string) bool {
-	x, ok := osLookupEnv(name)
+	x, ok := LookupEnv(name)
 	if !ok {
 		return false
 	}
@@ -177,9 +176,10 @@ func isFalsy(s string) bool {
 	return !boolString(s, true, true)
 }
 
-// EnvOr returns the value of the environment variable, or the default if unset
+// EnvOr returns the value of the environment variable, or the default if **unset** (if set but empty, returns "")
+// See also LookupEnv
 func EnvOr(name, def string) string {
-	x, ok := osLookupEnv(name)
+	x, ok := LookupEnv(name)
 	if !ok {
 		return def
 	}
@@ -195,7 +195,7 @@ func IsNoKeys() bool {
 
 // IsNoSign the one true way
 func IsNoSign() bool {
-	return FeatureEnabled("NO_SIGN", "nosign")
+	return FeatureEnabled("NO_SIGN", "nosign") || FeatureEnabled("NOSIGN", "nosign") // try with no underscore just incase
 }
 
 func IsNoCountdown() bool {
