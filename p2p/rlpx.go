@@ -83,7 +83,9 @@ type rlpx struct {
 	rw       *rlpxFrameRW
 }
 
-func newRLPX(fd net.Conn) transport {
+var _ transportI = (*rlpx)(nil)
+
+func newRLPX(fd net.Conn) *rlpx {
 	fd.SetDeadline(time.Now().Add(handshakeTimeout))
 	return &rlpx{fd: fd}
 }

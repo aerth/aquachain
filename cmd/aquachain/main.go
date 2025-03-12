@@ -29,6 +29,7 @@ import (
 	logpkg "log"
 
 	cli "github.com/urfave/cli/v3"
+	"gitlab.com/aquachain/aquachain/common/alerts"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/metrics"
 	"gitlab.com/aquachain/aquachain/common/sense"
@@ -128,36 +129,67 @@ var consoledefault = &cli.Command{
 		if x.Root() == nil {
 			return fmt.Errorf("woops")
 		}
-		return x.Run(ctx, os.Args[1:]) // no subcommand given so we know all the args are flags :)
+		args := os.Args[1:]
+		args2 := cmd.Args().Slice()
+		log.Info("running consoledefault", "args", args, "args2", args2)
+		return x.Run(ctx, args) // no subcommand given so we know all the args are flags :)
 	},
 }
 
 // afterFunc only for this main package
 func afterFunc(context.Context, *cli.Command) error {
-	mainctxs.MainCancelCause()(fmt.Errorf("bye"))
-	debug.Exit()
+	mainctxs.MainCancelCause()(fmt.Errorf("finished")) // quit anything running in case it wasnt called
+	debug.Exit()                                       // quit any running debug profiling
 	console.Stdin.Close()
+	time.Sleep(time.Second / 2) // just in case we got to this function by accident
 	return nil
+}
+
+var mainsubcommand = ""
+
+func isNodeFunc(subcmd string) bool {
+	return subcmd == "" || subcmd == "daemon" || subcmd == "console"
 }
 
 // beforeFunc only for this main package
 func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	if mainsubcommand != "" {
+		return ctx, fmt.Errorf("beforeFunc called twice")
+	}
+	mainsubcommand = cmd.Args().First()
+	if mainsubcommand == "" {
+		mainsubcommand = consoledefault.Name
+	}
+	if cmd.Command(mainsubcommand) == nil {
+		return ctx, fmt.Errorf("subcommand %s not found", mainsubcommand)
+	}
+	// if we are not running a node command, we dont need to do anything more here
+	if !isNodeFunc(mainsubcommand) {
+		return ctx, nil
+	}
+	if err := checkRuntimeEnvironment(); err != nil {
+		fmt.Fprintf(os.Stderr, "fatal: %+v\n", err)
+		os.Exit(1)
+	}
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := debug.Setup(ctx, cmd); err != nil {
 		return ctx, err
 	}
-	if x := cmd.Args().First(); x != "" && x != "daemon" || x != "console" { // is subcommand..
-		return ctx, nil
-	}
-
 	// Start system runtime metrics collection
-	go metrics.CollectProcessMetrics(3 * time.Second)
+	if metrics.Enabled = cmd.Bool(aquaflags.MetricsEnabledFlag.Name); metrics.Enabled {
+		go metrics.CollectProcessMetrics(3 * time.Second)
+	}
 	if targetGasLimit := cmd.Uint(aquaflags.TargetGasLimitFlag.Name); targetGasLimit > 0 {
 		params.TargetGasLimit = targetGasLimit
 	}
-	_, autoalertmode := sense.LookupEnv("ALERT_PLATFORM")
+	alertplatform, autoalertmode := sense.LookupEnv("ALERT_PLATFORM")
 	if autoalertmode {
+		log.Info("auto alert mode enabled", "platform", alertplatform)
 		cmd.Set(aquaflags.AlertModeFlag.Name, "true")
+	}
+	if alertmode := cmd.Bool(aquaflags.AlertModeFlag.Name); alertmode {
+		log.Info("alert mode enabled", "platform", alertplatform)
+		alerts.ParseAlertConfig()
 	}
 	return ctx, nil
 }
@@ -174,15 +206,15 @@ func main() {
 		log.Warn("context has been done for 10 seconds and we are still running... consider sending SIGINT")
 	}()
 	app := setupMain()
-
-	if err := checkRuntimeEnvironment(); err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: %+v\n", err)
-		os.Exit(1)
-	}
-
-	if err := app.Run(mainctxs.Main(), os.Args); err != nil {
+	err := app.Run(mainctxs.Main(), os.Args)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: running %s failed with error %+v\n", app.Name, err)
 	}
+	fn := log.Debug
+	if err != nil {
+		fn = log.Error
+	}
+	fn("subcommand finished", "subcommand", mainsubcommand, "errored", err != nil, "error", err)
 	if err := debug.WaitLoops(time.Second * 2); err != nil {
 		log.Warn("waiting for loops", "err", err)
 	} else if time.Since(subcommands.GetStartTime()) > time.Second*4 {

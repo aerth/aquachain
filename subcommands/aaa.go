@@ -188,6 +188,7 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 		for i := 0; i < 10; i++ {
 			am = stack.AccountManager()
 			if am != nil {
+				log.Debug("Account manager found")
 				break
 			}
 			log.Warn("Account manager not running, waiting", "i", i)
@@ -208,17 +209,26 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 			case <-nodeStarted:
 			case <-ctx.Done():
 			default:
-				log.Info("Starting Account Manager once node is running")
+				if !stack.Config().P2P.Offline {
+					log.Info("Starting Account Manager once node is running")
+				}
 			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-nodeStarted:
+
+			// allow keystore to start up before p2p if p2p wont be starting
+			if !stack.Config().P2P.Offline {
+				select {
+				case <-ctx.Done():
+					return
+				case <-nodeStarted:
+				case <-time.After(time.Second * 10):
+					log.Warn("Node not started after 10 seconds, bailing on wallet event listener")
+					return
+				}
 			}
 			// Create an chain state reader for self-derivation
 			rpcClient, err := stack.Attach(ctx, "accountManager")
 			if err != nil {
-				log.GracefulShutdown(log.Errorf("failed to attach to self: %v", err))
+				log.GracefulShutdown(log.Errorf("account manager failed to attach to node: %v", err))
 				return
 			}
 			stateReader := aquaclient.NewClient(rpcClient)

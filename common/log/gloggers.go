@@ -52,19 +52,19 @@ func GetGlogger() *GlogHandler {
 	return glogger
 }
 
-func Initglogger(callerinfo bool, verbosityLvl64 int64, alwayscolor, isjson bool) *GlogHandler {
+func Initglogger(callerinfo bool, verbosityLvlInput string, alwayscolor, isjson bool) *GlogHandler {
 	if glogger != nil {
 		return glogger
 	}
-	isjson = isjson && sense.Getenv("JSONLOG") != "0" && sense.Getenv("JSONLOG") != "off" // allow override false from init, even if -jsonlog is set
-	verbosityLvl := Lvl(verbosityLvl64)
-	if verbosityLvl == 0 {
+	isjson = isjson && !sense.EnvBoolDisabled("JSONLOG") // allow override false from init, even if -jsonlog is set
+
+	verbosityLvl, err := ParseLevel(verbosityLvlInput)
+	if err != nil {
+		Crit("invalid verbosity level", "level", verbosityLvlInput, "err", err)
 		verbosityLvl = LvlInfo
 	}
-	if verbosityLvl < 0 {
-		verbosityLvl = 0
 
-	}
+	// COLOR=1 ok
 	usecolor := alwayscolor || sense.Getenv("COLOR") == "1" || (term.IsTty(os.Stderr.Fd()) && sense.Getenv("TERM") != "dumb")
 	output := io.Writer(os.Stderr)
 	if usecolor {
@@ -77,11 +77,15 @@ func Initglogger(callerinfo bool, verbosityLvl64 int64, alwayscolor, isjson bool
 		form = TerminalFormat(usecolor)
 	}
 	h := StreamHandler(output, form)
+
+	// add caller info
 	if isjson && callerinfo {
 		h = CallerFileHandler(h)
 	} else if callerinfo {
 		PrintOrigins(true) // show line numbers
 	}
+
+	// set verbosity
 	x := NewGlogHandler(h)
 	x.Verbosity(verbosityLvl)
 	// go Trace("new glogger", "verbosity", verbosityLvl, "color", alwayscolor, "json", isjson, "caller2", Caller(2))

@@ -143,8 +143,17 @@ func DotEnv(extras ...string) error {
 
 // Getenv calls Dotenv (if it hasn't been called yet) and then os.Getenv
 func Getenv(name string) string {
+	return GetFirstEnv(name)
+}
+func GetFirstEnv(names ...string) string {
 	DotEnv()
-	return os.Getenv(name) // should be the only os.Getenv call.
+	for _, name := range names {
+		x := os.Getenv(name) // should be the only os.Getenv call.
+		if len(names) == 0 || x != "" {
+			return x
+		}
+	}
+	return ""
 }
 
 func LookupEnv(name string) (string, bool) {
@@ -152,7 +161,7 @@ func LookupEnv(name string) (string, bool) {
 	return os.LookupEnv(name) // should be the only os.LookupEnv call in the codebase to make sure a .env file is sourced before any env vars are read
 }
 
-// EnvBool returns false if empty/unset/falsy, true if otherwise non-empty
+// EnvBool returns false if empty/unset/falsy, important: true if otherwise non-empty
 func EnvBool(name string) bool {
 	x, ok := LookupEnv(name)
 	if !ok {

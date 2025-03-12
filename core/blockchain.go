@@ -187,9 +187,11 @@ func NewBlockChain(ctx context.Context, db aquadb.Database, cacheConfig *CacheCo
 	if bc.genesisBlock == nil {
 		return nil, ErrNoGenesis
 	}
-	if err := bc.loadLastState(); err != nil {
+	err = bc.loadLastState()
+	if err != nil {
 		return nil, err
 	}
+
 	// Check the current state of the block hashes and make sure that we do not have any of the bad blocks in our chain
 	for hash := range BadHashes {
 		if header := bc.GetHeaderByHash(hash); header != nil {
@@ -322,7 +324,11 @@ func (bc *BlockChain) SetHead(head uint64) error {
 	if err := WriteHeadFastBlockHash(bc.db, currentFastBlock.Hash()); err != nil {
 		log.Crit("Failed to reset head fast block", "err", err)
 	}
-	return bc.loadLastState()
+	err := bc.loadLastState()
+	if err != nil {
+		log.Error("Failed to load last state after SetHead", "err", err) // non-fatal for now since we werent checking before
+	}
+	return err
 }
 
 // FastSyncCommitHead sets the current head block to the one defined by the hash

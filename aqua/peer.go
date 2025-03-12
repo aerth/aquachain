@@ -25,8 +25,10 @@ import (
 
 	set "github.com/deckarep/golang-set"
 	"gitlab.com/aquachain/aquachain/common"
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/p2p"
+	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/rlp"
 )
 
@@ -227,6 +229,20 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 	return p2p.Send(p.rw, GetReceiptsMsg, hashes)
 }
 
+func printableGenesisHash(genesis common.Hash) string {
+	switch genesis {
+	case params.MainnetGenesisHash:
+		return "mainnet"
+	case params.TestnetGenesisHash:
+		return "testnet"
+	case params.Testnet2GenesisHash:
+		return "testnet2"
+	case params.Testnet3GenesisHash:
+		return "testnet3"
+	}
+	return fmt.Sprintf("%02x", genesis[:8])
+}
+
 // Handshake executes the aqua protocol handshake, negotiating version number,
 // network IDs, difficulties, head and genesis blocks.
 func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis common.Hash) error {
@@ -234,6 +250,7 @@ func (p *peer) Handshake(network uint64, td *big.Int, head common.Hash, genesis 
 	errc := make(chan error, 2)
 	var status statusData // safe to read after two values have been received from errc
 
+	log.Debug("Starting aqua handshake", "peer", p.id, "network", network, "head", head, "genesis", printableGenesisHash(genesis), "version", p.version, "td", td)
 	go func() {
 		errc <- p2p.Send(p.rw, StatusMsg, &statusData{
 			ProtocolVersion: uint32(p.version),

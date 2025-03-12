@@ -197,7 +197,10 @@ func makeExtraData(extra []byte) []byte {
 		runtime.GOOS,
 		common.ShortGoVersion(),
 	}
-	defaultExtra, _ := rlp.EncodeToBytes(thing)
+	defaultExtra, err := rlp.EncodeToBytes(thing)
+	if err != nil {
+		panic("could not encode default extradata: " + err.Error())
+	}
 	if len(extra) == 0 {
 		extra = defaultExtra
 	} else if len(extra) > 1 {
@@ -272,6 +275,9 @@ func CreateDB(ctx *node.ServiceContext, config *config.Aquaconfig, name string) 
 // CreateConsensusEngine creates the required type of consensus engine instance for an Aquachain service
 func CreateConsensusEngine(ctx *node.ServiceContext, config *aquahash.Config, chainConfig *params.ChainConfig, db aquadb.Database, nodename string) consensus.Engine {
 	startVersion := chainConfig.GetGenesisVersion()
+	if config.StartVersion != 0 {
+		startVersion = config.StartVersion
+	}
 	switch {
 	case config.PowMode == aquahash.ModeFake:
 		log.Warn("Aquahash used in fake mode")
@@ -285,8 +291,8 @@ func CreateConsensusEngine(ctx *node.ServiceContext, config *aquahash.Config, ch
 	case chainConfig.Clique != nil:
 		log.Info("Starting Clique", "period", chainConfig.Clique.Period, "epoch", chainConfig.Clique.Epoch)
 		return clique.New(chainConfig.Clique, db)
-	default:
-		log.Info("Starting aquahash", "version", startVersion)
+	default: // normal
+		log.Info("Starting aquahash", "version", startVersion.String())
 		if startVersion > 1 {
 			engine := aquahash.New(&aquahash.Config{StartVersion: startVersion})
 			engine.SetThreads(-1)
@@ -485,12 +491,15 @@ func (s *Aquachain) Protocols() []p2p.Protocol {
 // Start implements node.Service, starting all internal goroutines needed by the
 // Aquachain protocol implementation.
 func (s *Aquachain) Start(srvr *p2p.Server) error {
+	s.netRPCService = aquaapi.NewPublicNetAPI(srvr, s.NetVersion()) // even offline, net api is useful
+	// Start the RPC service
+	if srvr.Offline {
+		log.Info("Aquachain protocol started in offline mode")
+		return nil
+	}
 	log.Info("Starting Aquachain protocol", "network", s.config.ChainId, "version", s.AquaVersion())
 	// Start the bloom bits servicing goroutines
 	s.startBloomHandlers()
-
-	// Start the RPC service
-	s.netRPCService = aquaapi.NewPublicNetAPI(srvr, s.NetVersion())
 
 	// Figure out a max peers count based on the server limits
 	maxPeers := srvr.MaxPeers
@@ -504,7 +513,7 @@ func (s *Aquachain) Start(srvr *p2p.Server) error {
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Aquachain protocol.
 func (s *Aquachain) Stop() error {
-	log.Info("Shutdown: Aquachain backend service stopping")
+	log.Info("Shutdown: Aquachain backend service stopping", "caller1", log.Caller(1), "caller2", log.Caller(2), "caller3", log.Caller(3))
 	defer func() {
 		if err := recover(); err != nil {
 			log.Error("Aquachain backend service stopped with panic", "err", err)

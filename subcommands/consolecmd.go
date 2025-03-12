@@ -120,7 +120,7 @@ JavaScript API. See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Conso
 func localConsole(ctx context.Context, cmd *cli.Command) error {
 	// Create and start the node based on the CLI flags
 	if first := cmd.Args().First(); first != "" && first[0] != '-' && first != "console" {
-		return fmt.Errorf("uhoh: %q got here", first)
+		return fmt.Errorf("parsing command line: %q got here (%s) (args=%q)", first, cmd.Name, cmd.Args().Slice())
 	}
 	if args := cmd.Args(); args.Len() != 0 && args.First() != "console" {
 		return fmt.Errorf("invalid command: %q", args.First())

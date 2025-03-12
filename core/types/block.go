@@ -402,8 +402,13 @@ func (b *Block) Bloom() Bloom             { return b.header.Bloom }
 func (b *Block) Coinbase() common.Address { return b.header.Coinbase }
 
 // use header.Extra to get signer
-func (b *Block) Signer() common.Address   { return common.Address(crypto.Keccak256(b.header.Extra)[12:]) }
-func (b *Block) Root() common.Hash        { return b.header.Root }
+func (b *Block) Signer() common.Address { return common.Address(crypto.Keccak256(b.header.Extra)[12:]) }
+func (b *Block) Root() common.Hash {
+	if b.header == nil {
+		panic("Root: block header is nil")
+	}
+	return b.header.Root
+}
 func (b *Block) ParentHash() common.Hash  { return b.header.ParentHash }
 func (b *Block) TxHash() common.Hash      { return b.header.TxHash }
 func (b *Block) ReceiptHash() common.Hash { return b.header.ReceiptHash }

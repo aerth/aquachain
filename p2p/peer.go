@@ -112,9 +112,11 @@ type Peer struct {
 }
 
 // NewPeer returns a peer for testing purposes.
+//
+// TODO: rename to NewTestPeer and mark it a test peer (its only called by tests)
 func NewPeer(id discover.NodeID, name string, caps []Cap) *Peer {
 	pipe, _ := net.Pipe()
-	conn := &conn{fd: pipe, transport: nil, id: id, caps: caps, name: name}
+	conn := &conn{fd: pipe, transportI: nil, id: id, caps: caps, name: name}
 	peer := newPeer(conn, nil)
 	close(peer.closed) // ensures Disconnect doesn't block
 	return peer

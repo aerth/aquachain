@@ -681,6 +681,10 @@ func assertOwnForkedChain(t *testing.T, tester *downloadTester, common int, leng
 	}*/
 }
 
+func init() {
+	trie.TestMode()
+}
+
 // Tests that simple synchronization against a canonical chain works correctly.
 // In this test common ancestor lookup should be short circuited and not require
 // binary searching.

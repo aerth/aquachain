@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"net"
 	"os"
@@ -46,11 +47,10 @@ import (
 
 // Node is a container on which services can be registered.
 type Node struct {
-	closemain func()
-	ctx       context.Context
-	eventmux  *event.TypeMux // Event multiplexer used between the services of a stack
-	config    *Config
-	accman    *accounts.Manager
+	ctx      context.Context
+	eventmux *event.TypeMux // Event multiplexer used between the services of a stack
+	config   *Config
+	accman   *accounts.Manager
 
 	ephemeralKeystore string         // if non-empty, the key directory that will be removed by Stop
 	instanceDirLock   flock.Releaser // prevents concurrent use of instance directory
@@ -93,11 +93,6 @@ func New(conf *Config) (*Node, error) {
 	if conf.Context == nil {
 		panic("Context not set")
 	}
-	if conf.CloseMain == nil {
-		panic("CloseMain not set")
-		// return nil, errors.New("CloseMain not set")
-	}
-
 	chaincfg := conf.P2P.ChainConfig()
 	if chaincfg == nil {
 		chaincfg = params.GetChainConfigByChainId(big.NewInt(int64(conf.P2P.ChainId)))
@@ -145,11 +140,12 @@ func New(conf *Config) (*Node, error) {
 		log.Warn("USING EPHEMERAL KEYSTORE", "custom_dir", conf.KeyStoreDir, "active", fmt.Sprintf("%T", am), "ephemeral", ephemeralKeystore)
 	} else if conf.KeyStoreDir != "" {
 		log.Warn("USING KEYSTORE", "custom_dir", conf.KeyStoreDir, "active", fmt.Sprintf("%T", am))
+	} else {
+		log.Info("USING NO KEYSTORE", "active", fmt.Sprintf("%T", am))
 	}
 	if conf.Logger == nil {
 		conf.Logger = log.New()
 	}
-	log.Info("created a node:", "withKeystore", am != nil, "ephemeralKeystore", ephemeralKeystore, "caller2", log.Caller(2))
 	// Note: any interaction with Config that would create/touch files
 	// in the data directory or instance directory is delayed until Start.
 	return &Node{
@@ -250,10 +246,6 @@ func (n *Node) Start(ctx context.Context) error {
 		}
 		return port
 	}
-	if len(n.config.HTTPVirtualHosts) == 0 || len(n.config.HTTPVirtualHosts[0]) == 0 {
-		log.Warn("No RPC virtual hosts set, using default (any). use -rpcvhosts flag to confine browser usage to a single domain name)")
-		n.config.HTTPVirtualHosts = []string{"*"}
-	}
 
 	// do startup alert if enabled
 	if alerts.Enabled() {
@@ -276,9 +268,7 @@ func (n *Node) Start(ctx context.Context) error {
 			EventMux:       n.eventmux,
 			AccountManager: n.accman,
 		}
-		for kind, s := range services { // copy needed for threaded access
-			ctx.services[kind] = s
-		}
+		maps.Copy(ctx.services, services)
 		// Construct and save the service
 		service, err := constructor(ctx)
 		if err != nil {
@@ -291,14 +281,18 @@ func (n *Node) Start(ctx context.Context) error {
 		services[kind] = service
 	}
 	// Gather the protocols and start the freshly assembled P2P server
+	var servicenames []string
 	for _, service := range services {
 		running.Protocols = append(running.Protocols, service.Protocols()...)
+		servicenames = append(servicenames, fmt.Sprintf("%T", service))
+
 	}
 	if err := running.Start(ctx); err != nil {
 		return convertFileLockError(err)
 	}
 	// Start each of the services
 	started := []reflect.Type{}
+	log.Info("Services to start", "count", len(services), "services", servicenames)
 	for kind, service := range services {
 		// Start the next service, stopping all previous upon failure
 		if service == nil {
@@ -401,6 +395,16 @@ func (n *Node) startRPC(services map[reflect.Type]Service, donefunc func()) erro
 	if len(allownet) > 0 {
 		allownets = allownet.String()
 	}
+
+	if n.httpEndpoint != "" && (len(n.config.HTTPVirtualHosts) == 0 || len(n.config.HTTPVirtualHosts[0]) == 0) {
+		log.Warn("No RPC virtual hosts set, using default (any). use -rpcvhosts flag to confine browser usage to a single domain name)")
+		n.config.HTTPVirtualHosts = []string{"*"}
+	}
+	if n.wsEndpoint != "" && (len(n.config.WSOrigins) == 0 || len(n.config.WSOrigins[0]) == 0) {
+		log.Warn("No WS origins set, using default (any). use -wsorigins flag to confine browser usage to a single domain name)")
+		n.config.WSOrigins = []string{"*"}
+	}
+
 	if n.httpEndpoint != "" {
 		log.Warn("RPC allow IP", "allownet", allownets)
 		if err := n.startHTTP(n.httpEndpoint, apis, n.config.HTTPModules, n.config.HTTPCors, n.config.HTTPVirtualHosts, allownet, n.config.RPCBehindProxy); err != nil {
@@ -425,11 +429,11 @@ func (n *Node) startRPC(services map[reflect.Type]Service, donefunc func()) erro
 
 // startInProc initializes an in-process RPC endpoint.
 func (n *Node) startInProc(apis []rpc.API) error {
-	// Register all the APIs exposed by the services
 	if n.config.NoInProc {
 		return nil
 	}
 	debugRpc := sense.EnvBool("DEBUG_RPC")
+	// Register all the APIs exposed by the services
 	handler := rpc.NewServer()
 	for _, api := range apis {
 		if _, err := handler.RegisterName(api.Namespace, api.Service); err != nil {
@@ -642,10 +646,6 @@ func (n *Node) stopWS() {
 func (n *Node) Stop() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
-	if n.closemain != nil {
-		n.closemain()
-	}
-
 	// Short circuit if the node's not running
 	if n.server == nil {
 		return ErrNodeStopped

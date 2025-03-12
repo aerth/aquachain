@@ -156,8 +156,9 @@ type Server struct {
 	*Config
 	// Hooks for testing. These are useful because we can inhibit
 	// the whole protocol stack.
-	newTransport func(net.Conn) transport
-	newPeerHook  func(*Peer)
+	newRealTransport func(net.Conn) *rlpx
+	newTestTransport func(net.Conn) transportI
+	newPeerHook      func(*Peer)
 
 	lock    sync.Mutex // protects running
 	running bool
@@ -230,7 +231,7 @@ const (
 // during the two handshakes.
 type conn struct {
 	fd net.Conn
-	transport
+	transportI
 	flags connFlag
 	cont  chan error      // The run loop uses cont to signal errors to SetupConn.
 	id    discover.NodeID // valid after the encryption handshake
@@ -238,7 +239,7 @@ type conn struct {
 	name  string          // valid after the protocol handshake
 }
 
-type transport interface {
+type transportI interface {
 	// The two handshakes.
 	doEncHandshake(prv *ecdsa.PrivateKey, dialDest *discover.Node) (discover.NodeID, error)
 	doProtoHandshake(our *protoHandshake) (*protoHandshake, error)
@@ -471,8 +472,8 @@ func (srv *Server) Start(ctx context.Context) (err error) {
 	if srv.PrivateKey == nil {
 		return fmt.Errorf("p2p.Server.PrivateKey must be set to a non-nil key")
 	}
-	if srv.newTransport == nil {
-		srv.newTransport = newRLPX
+	if srv.newRealTransport == nil {
+		srv.newRealTransport = newRLPX
 	}
 	if srv.Dialer == nil {
 		srv.Dialer = TCPDialer{&net.Dialer{Timeout: defaultDialTimeout}}
@@ -857,6 +858,13 @@ func (srv *Server) listenLoop() {
 	}
 }
 
+func (srv *Server) newTransport(fd net.Conn) transportI {
+	if srv.newTestTransport != nil {
+		return srv.newTestTransport(fd)
+	}
+	return srv.newRealTransport(fd)
+}
+
 // SetupConn runs the handshakes and attempts to add the connection
 // as a peer. It returns when the connection has been added as a peer
 // or the handshakes have failed.
@@ -864,7 +872,7 @@ func (srv *Server) SetupConn(fd net.Conn, flags connFlag, dialDest *discover.Nod
 	if mainctxs.Main().Err() != nil {
 		return fmt.Errorf("shutting down")
 	}
-	c := &conn{fd: fd, transport: srv.newTransport(fd), flags: flags, cont: make(chan error)}
+	c := &conn{fd: fd, transportI: srv.newTransport(fd), flags: flags, cont: make(chan error)}
 	err := srv.setupConn(c, flags, dialDest)
 	if err != nil {
 		c.close(err)
@@ -888,12 +896,12 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 		return err
 	}
 	clog := srv.log.New("id", c.id, "addr", c.fd.RemoteAddr(), "conn", c.flags) // TODO fix log.New
-	clog.Info("RLPx handshake complete")
 	// For dialed connections, check that the remote public key matches.
 	if dialDest != nil && c.id != dialDest.ID {
-		clog.Trace("Dialed identity mismatch", "want", c, dialDest.ID)
+		clog.Warn("Dialed p2p identity mismatch", "want", c, dialDest.ID)
 		return DiscUnexpectedIdentity
 	}
+	clog.Info("RLPx handshake complete")
 	err = srv.checkpoint(c, srv.posthandshake)
 	if err != nil {
 		clog.Trace("Rejected peer before protocol handshake", "err", err)
@@ -912,7 +920,7 @@ func (srv *Server) setupConn(c *conn, flags connFlag, dialDest *discover.Node) e
 	c.caps, c.name = phs.Caps, phs.Name
 	err = srv.checkpoint(c, srv.addpeer)
 	if err != nil {
-		clog.Trace("Rejected peer", "err", err)
+		clog.Warn("Rejected peer", "err", err)
 		return err
 	}
 	// If the checks completed successfully, runPeer has now been

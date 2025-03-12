@@ -47,10 +47,7 @@ func ResetForTesting() {
 		return
 	}
 	lvl := LvlWarn
-	envlvl := sense.Getenv("TESTLOGLVL")
-	if envlvl == "" {
-		envlvl = sense.Getenv("LOGLEVEL")
-	}
+	envlvl := sense.GetFirstEnv("TESTLOGLVL", "LOGLEVEL", "LOGLVL")
 	if x := envlvl; x != "" && x != "0" { // so TESTLOGLVL=0 is the same as not setting it (0=crit, which is silent)
 		Info("setting custom TESTLOGLVL log level", "loglevel", x)
 		lvl = MustParseLevel(x)
@@ -63,23 +60,51 @@ func ResetForTesting() {
 }
 
 func MustParseLevel(s string) Lvl {
+	lvl, err := ParseLevel(s)
+	if err != nil {
+		panic(err.Error())
+	}
+	return lvl
+}
+
+//		switch s {
+//		case "":
+//			return LvlInfo
+//		case "trace", "5", "6", "7", "8", "9":
+//			return LvlTrace
+//		case "debug", "4":
+//			return LvlDebug
+//		case "info", "3":
+//			return LvlInfo
+//		case "warn", "2":
+//			return LvlWarn
+//		case "error", "1":
+//			return LvlError
+//		case "crit", "critical", "0":
+//			return LvlCrit // actual silent level until a fatal error occurs
+//		default: // bad value
+//			panic("bad TESTLOGLVL: " + s)
+//		}
+//	}
+func ParseLevel(s string) (Lvl, error) {
+	println("parsing log level", s)
 	switch s {
 	case "":
-		return LvlInfo
+		return LvlInfo, fmt.Errorf("empty log level")
 	case "trace", "5", "6", "7", "8", "9":
-		return LvlTrace
+		return LvlTrace, nil
 	case "debug", "4":
-		return LvlDebug
+		return LvlDebug, nil
 	case "info", "3":
-		return LvlInfo
+		return LvlInfo, nil
 	case "warn", "2":
-		return LvlWarn
+		return LvlWarn, nil
 	case "error", "1":
-		return LvlError
+		return LvlError, nil
 	case "crit", "critical", "0":
-		return LvlCrit // actual silent level until a fatal error occurs
+		return LvlCrit, nil // actual silent level until a fatal error occurs
 	default: // bad value
-		panic("bad TESTLOGLVL: " + s)
+		return LvlInfo, fmt.Errorf("could not parse log level: %s", s)
 	}
 }
 
@@ -91,7 +116,7 @@ func newRoot(handler Handler) *logger {
 
 var is_testing bool
 
-func GetLevelFromEnv() Lvl {
+func GetUnparsedLevelFromEnv() string {
 	lvl := sense.Getenv("LOGLEVEL")
 	if lvl == "" {
 		lvl = sense.Getenv("TESTLOGLVL")
@@ -101,12 +126,21 @@ func GetLevelFromEnv() Lvl {
 	}
 	if lvl == "" {
 		if is_testing {
-			return LvlWarn
+			return "warn"
 		}
-		return LvlInfo
+		return "info"
 	}
-	return MustParseLevel(lvl)
+	return lvl
 }
+
+func GetLevelFromEnv() Lvl {
+	lvl, err := ParseLevel(GetUnparsedLevelFromEnv())
+	if err != nil {
+		panic(err.Error())
+	}
+	return lvl
+}
+
 func newRootHandler() Handler {
 	x := CallerFileHandler(StreamHandler(os.Stderr, TerminalFormat(true)))
 	if sense.FeatureEnabled("JSONLOG", "jsonlog") {

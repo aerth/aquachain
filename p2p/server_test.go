@@ -38,6 +38,7 @@ func init() {
 	NoCountdown = true
 }
 
+// testTransport wraps an rlpx connection for testing purposes.
 type testTransport struct {
 	id discover.NodeID
 	*rlpx
@@ -45,8 +46,8 @@ type testTransport struct {
 	closeErr error
 }
 
-func newTestTransport(id discover.NodeID, fd net.Conn) transport {
-	wrapped := newRLPX(fd).(*rlpx)
+func newTestTransport(id discover.NodeID, fd net.Conn) *testTransport {
+	wrapped := newRLPX(fd)
 	wrapped.rw = newRLPXFrameRW(fd, secrets{
 		MAC:        zero16,
 		AES:        zero16,
@@ -78,9 +79,9 @@ func startTestServer(t *testing.T, id discover.NodeID, pf func(*Peer)) *Server {
 		ChainId:    222,
 	}
 	server := &Server{
-		Config:       config,
-		newPeerHook:  pf,
-		newTransport: func(fd net.Conn) transport { return newTestTransport(id, fd) },
+		Config:           config,
+		newPeerHook:      pf,
+		newTestTransport: func(fd net.Conn) transportI { return newTestTransport(id, fd) },
 	}
 	if err := server.Start(context.Background()); err != nil {
 		t.Fatalf("Could not start server: %v", err)
@@ -384,7 +385,7 @@ func TestServerAtCap(t *testing.T) {
 	newconn := func(id discover.NodeID) *conn {
 		fd, _ := net.Pipe()
 		tx := newTestTransport(id, fd)
-		return &conn{fd: fd, transport: tx, flags: inboundConn, id: id, cont: make(chan error)}
+		return &conn{fd: fd, transportI: tx, flags: inboundConn, id: id, cont: make(chan error)}
 	}
 
 	// Inject a few connections to fill up the peer set.
@@ -479,8 +480,8 @@ func TestServerSetupConn(t *testing.T) {
 				Protocols:  []Protocol{discard},
 				ChainId:    444,
 			},
-			newTransport: func(fd net.Conn) transport { return test.tt },
-			log:          log.New(),
+			newTestTransport: func(fd net.Conn) transportI { return test.tt },
+			log:              log.New(),
 		}
 		if !test.dontstart {
 			if err := srv.Start(context.TODO()); err != nil {

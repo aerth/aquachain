@@ -303,12 +303,20 @@ func (db *Database) Commit(node common.Hash, report bool) error {
 	return nil
 }
 
+func TestMode() {
+	logNonpending = false
+}
+
+var logNonpending = true
+
 // commit is the private locked version of Commit.
 func (db *Database) commit(hash common.Hash, batch aquadb.Batch) error {
 	// If the node does not exist, it's a previously committed node
 	node, ok := db.nodes[hash]
 	if !ok {
-		log.Warn("Tried to commit non-pending trie node", "hash", hash)
+		if logNonpending {
+			log.Warn("Tried to commit non-pending trie node", "hash", hash)
+		}
 		return nil
 	}
 	for child := range node.children {
