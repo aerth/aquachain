@@ -335,12 +335,20 @@ func splitAndTrim(input string) []string {
 // setHTTP creates the HTTP RPC listener interface string from the set
 // command line flags, returning empty if the HTTP endpoint is disabled.
 func setHTTP(cmd *cli.Command, cfg *node.Config) {
-	var nokeys = cmd.Bool(aquaflags.NoKeysFlag.Name) || cmd.Bool(aquaflags.NoSignFlag.Name)
+
+	var nokeys = sense.IsNoKeys()
 	if nokeys {
 		cfg.NoKeys = true
 	}
+	if !cmd.Bool(aquaflags.RPCEnabledFlag.Name) { // require -rpc flag
+		cfg.HTTPHost = ""
+		cfg.HTTPPort = 0
+		cfg.RPCAllowIP = nil // prevent rpc start
+		return
+	}
+
 	if cmd.IsSet(aquaflags.RPCListenAddrFlag.Name) && cmd.IsSet(aquaflags.UnlockedAccountFlag.Name) && !cmd.IsSet(aquaflags.RPCUnlockFlag.Name) {
-		Fatalf("Woah there! By default, using -rpc and -unlock is \"safe\", (localhost).\n" +
+		Fatalf("Woah there! By default, using -rpc and -unlock is somewhat \"safe\", (localhost only).\n" +
 			"But you shouldn't use --rpcaddr with --unlock flag.\n" +
 			"If you really know what you are doing and would like to unlock a wallet while" +
 			"hosting a public HTTP RPC node, use the -UNSAFE_RPC_UNLOCK flag. See -allowip flag to restrict access")
@@ -348,13 +356,14 @@ func setHTTP(cmd *cli.Command, cfg *node.Config) {
 	}
 	if cmd.Bool(aquaflags.RPCEnabledFlag.Name) && cfg.HTTPHost == "" {
 		cfg.HTTPHost = "127.0.0.1"
-		if cmd.IsSet(aquaflags.RPCListenAddrFlag.Name) && cmd.IsSet(aquaflags.UnlockedAccountFlag.Name) {
-			// allow public rpc with unlocked account, exposed only via 'private' api namespace (aqua.sendTransaction and aqua.sign are disabled)
-			keystore.SetNoSignMode()
-		}
-		if cmd.IsSet(aquaflags.RPCListenAddrFlag.Name) {
-			cfg.HTTPHost = cmd.String(aquaflags.RPCListenAddrFlag.Name)
-		}
+	}
+	if cmd.IsSet(aquaflags.RPCListenAddrFlag.Name) && cmd.IsSet(aquaflags.UnlockedAccountFlag.Name) {
+		// allow public rpc with unlocked account, exposed only via 'private' api namespace (aqua.sendTransaction and aqua.sign are disabled)
+		keystore.SetNoSignMode()
+		log.Warn("RPC enabled with unlocked account, assuming you unlocked as a block signer and we are disabling signing via RPC")
+	}
+	if cmd.IsSet(aquaflags.RPCListenAddrFlag.Name) {
+		cfg.HTTPHost = cmd.String(aquaflags.RPCListenAddrFlag.Name)
 	}
 
 	if cmd.IsSet(aquaflags.RPCPortFlag.Name) {
@@ -369,6 +378,10 @@ func setHTTP(cmd *cli.Command, cfg *node.Config) {
 
 	cfg.HTTPVirtualHosts = splitAndTrim(cmd.String(aquaflags.RPCVirtualHostsFlag.Name))
 	cfg.RPCAllowIP = splitAndTrim(cmd.String(aquaflags.RPCAllowIPFlag.Name))
+	if cfg.HTTPPort == 0 {
+		cfg.HTTPPort = cfg.P2P.ChainConfig().DefaultRpcPort
+	}
+	log.Info("HTTP endpoint opened", "url", fmt.Sprintf("http://%s:%d", cfg.HTTPHost, cfg.HTTPPort))
 }
 
 // allow '+' prefixed flags to append to the default modules
@@ -399,6 +412,12 @@ func parseRpcFlags(defaultModules, maybe []string) []string {
 // setWS creates the WebSocket RPC listener interface string from the set
 // command line flags, returning empty if the HTTP endpoint is disabled.
 func setWS(cmd *cli.Command, cfg *node.Config) {
+	if !cmd.Bool(aquaflags.WSEnabledFlag.Name) { // require -ws flag
+		cfg.HTTPHost = ""
+		cfg.HTTPPort = 0
+		cfg.RPCAllowIP = nil // prevent rpc start
+		return
+	}
 	if cmd.Bool(aquaflags.WSEnabledFlag.Name) && cfg.WSHost == "" {
 		cfg.WSHost = "127.0.0.1"
 		if cmd.IsSet(aquaflags.WSListenAddrFlag.Name) {
@@ -416,6 +435,11 @@ func setWS(cmd *cli.Command, cfg *node.Config) {
 	if cmd.IsSet(aquaflags.WSApiFlag.Name) {
 		cfg.WSModules = splitAndTrim(cmd.String(aquaflags.WSApiFlag.Name))
 	}
+
+	if cfg.WSPort == 0 {
+		cfg.WSPort = cfg.P2P.ChainConfig().DefaultWsPort
+	}
+	log.Info("WS endpoint opened", "url", fmt.Sprintf("ws://%s:%d", cfg.HTTPHost, cfg.HTTPPort))
 }
 
 // setIPC creates an IPC path configuration from the set command line flags,
@@ -1177,8 +1201,6 @@ func DefaultNodeConfig(gitCommit, clientIdentifier string) *node.Config {
 	cfg := node.NewDefaultConfig()
 	cfg.Name = clientIdentifier
 	cfg.Version = params.VersionWithCommit(gitCommit)
-	cfg.HTTPModules = append(cfg.HTTPModules, "aqua")
-	cfg.WSModules = append(cfg.WSModules, "aqua")
 	cfg.IPCPath = "aquachain.ipc"
 	cfg.P2P.Name = node.GetNodeName(cfg) // cached
 	return cfg
