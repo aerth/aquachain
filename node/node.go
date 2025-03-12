@@ -249,7 +249,7 @@ func (n *Node) Start(ctx context.Context) error {
 		return port
 	}
 	if len(n.config.HTTPVirtualHosts) == 0 || len(n.config.HTTPVirtualHosts[0]) == 0 {
-		log.Warn("no virtual hosts, using default (any)")
+		log.Warn("No RPC virtual hosts set, using default (any). use -rpcvhosts flag to confine browser usage to a single domain name)")
 		n.config.HTTPVirtualHosts = []string{"*"}
 	}
 
@@ -303,6 +303,7 @@ func (n *Node) Start(ctx context.Context) error {
 			log.Warn("skipping service:", "kind", kind)
 			continue
 		}
+		log.Info("Starting service", "kind", kind)
 		if err := service.Start(running); err != nil {
 			for _, kind := range started {
 				services[kind].Stop()
@@ -372,12 +373,6 @@ func parseAllowNet(allowIPmasks []string) netutil.Netlist {
 // assumptions about the state of the node.
 func (n *Node) startRPC(services map[reflect.Type]Service, donefunc func()) error {
 	defer donefunc()
-	// gather allownet
-	allownet := parseAllowNet(n.config.RPCAllowIP)
-	if len(allownet) == 0 {
-		return fmt.Errorf("startRPC: no allowed IPs")
-	}
-	log.Warn("RPC allow IP", "allownet", allownet.String())
 	// Gather all the possible APIs to surface
 	apis := n.apis()
 	for _, service := range services {
@@ -394,16 +389,32 @@ func (n *Node) startRPC(services map[reflect.Type]Service, donefunc func()) erro
 		n.stopInProc()
 		return err
 	}
-	if err := n.startHTTP(n.httpEndpoint, apis, n.config.HTTPModules, n.config.HTTPCors, n.config.HTTPVirtualHosts, allownet, n.config.RPCBehindProxy); err != nil {
-		n.stopIPC()
-		n.stopInProc()
-		return err
+
+	// gather allownet
+	allownet := parseAllowNet(n.config.RPCAllowIP)
+	if len(allownet) == 0 && (n.httpEndpoint != "" || n.wsEndpoint != "") {
+		return fmt.Errorf("startRPC: no allowed IPs, why start RPC?")
 	}
-	if err := n.startWS(n.wsEndpoint, apis, n.config.WSModules, n.config.WSOrigins, n.config.WSExposeAll, allownet, n.config.RPCBehindProxy); err != nil {
-		n.stopHTTP()
-		n.stopIPC()
-		n.stopInProc()
-		return err
+	allownets := "NONE"
+	if len(allownet) > 0 {
+		allownets = allownet.String()
+	}
+	if n.httpEndpoint != "" {
+		log.Warn("RPC allow IP", "allownet", allownets)
+		if err := n.startHTTP(n.httpEndpoint, apis, n.config.HTTPModules, n.config.HTTPCors, n.config.HTTPVirtualHosts, allownet, n.config.RPCBehindProxy); err != nil {
+			n.stopIPC()
+			n.stopInProc()
+			return err
+		}
+	}
+	if n.wsEndpoint != "" {
+		log.Warn("WS allow IP", "allownet", allownets)
+		if err := n.startWS(n.wsEndpoint, apis, n.config.WSModules, n.config.WSOrigins, n.config.WSExposeAll, allownet, n.config.RPCBehindProxy); err != nil {
+			n.stopHTTP()
+			n.stopIPC()
+			n.stopInProc()
+			return err
+		}
 	}
 	// All API endpoints started successfully
 	n.rpcAPIs = apis
