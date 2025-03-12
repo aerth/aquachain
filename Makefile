@@ -100,7 +100,9 @@ internal/jsre/deps/bindata.go: internal/jsre/deps/web3.js  internal/jsre/deps/bi
 	@test -x "$(gobindatacmd)" || echo 'warn: go-bindata not found in PATH. run make devtools to install required development dependencies'
 	@test -x "$(gobindatacmd)" || exit 0
 	@echo "regenerating embedded javascript assets"
-	@test ! -x "$(gobindatacmd)" || go generate -x ./internal/jsre/deps/...
+# TODO: why is this bit needed now? maybe go-bindata version doesnt touch file
+	@rm -vf internal/jsre/deps/bindata.go
+	@test ! -x "$(gobindatacmd)" || go generate -v -x ./internal/jsre/deps/...
 regen:
 	@echo "regenerating embedded assets"
 	@test -x "$(gobindatacmd)" || echo 'warn: go-bindata not found in PATH. run make devtools to install required development dependencies'
