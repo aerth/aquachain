@@ -33,6 +33,7 @@ import (
 	"reflect"
 	"sync"
 
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/p2p"
 )
 
@@ -272,20 +273,25 @@ func (p *Peer) handleIncoming(handle func(msg interface{}) error) error {
 // * the dialing peer needs to send the handshake first and then waits for remote
 // * the listening peer waits for the remote handshake and then sends it
 // returns the remote handshake and an error
-func (p *Peer) Handshake(ctx context.Context, hs interface{}, verify func(interface{}) error) (rhs interface{}, err error) {
+func (p *Peer) Handshake(ctx context.Context, hs any, verify func(any) error) (rhs any, err error) {
+	log.Debug("handshake", "peer", p.ID(), "inbound", p.Inbound())
 	if _, ok := p.spec.GetCode(hs); !ok {
 		return nil, errorf(ErrHandshake, "unknown handshake message type: %T", hs)
 	}
 	errc := make(chan error, 2)
-	handle := func(msg interface{}) error {
+	handle := func(msg any) error {
 		rhs = msg
 		if verify != nil {
 			return verify(rhs)
 		}
 		return nil
 	}
-	send := func() { errc <- p.Send(hs) }
-	receive := func() { errc <- p.handleIncoming(handle) }
+	send := func() {
+		errc <- p.Send(hs)
+	}
+	receive := func() {
+		errc <- p.handleIncoming(handle)
+	}
 
 	go func() {
 		if p.Inbound() {

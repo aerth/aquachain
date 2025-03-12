@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/urfave/cli/v3"
 	"gitlab.com/aquachain/aquachain/aqua"
@@ -143,8 +144,9 @@ var (
 		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
 	}
 	IdentityFlag = &cli.StringFlag{
-		Name:  "identity",
-		Usage: "Custom node name (used in p2p networking, default is aquachain version)",
+		Name:   "identity",
+		Usage:  "Custom node name (used in p2p networking, eg: \"CoolPool\", becomes \"Aquachain-CoolPool/v1.2.3-release/linux-amd64/go.1.24.1\")",
+		Action: checkStringFlag,
 	}
 	WorkingDirectoryFlag = &cli.StringFlag{
 		Name: "WorkingDirectory",
@@ -196,15 +198,24 @@ var (
 			if v != "fast" && v != "full" && v != "offline" {
 				return fmt.Errorf("invalid sync mode: %q", v)
 			}
-			return nil
+			return checkStringFlag(ctx, cmd, v)
 		},
 	}
 	GCModeFlag = &cli.StringFlag{
-		Name:  "gcmode",
-		Usage: `GC mode to use, either "full" or "archive". Use "archive" for full accurate state (for example, 'admin.supply')`,
-		Value: "archive",
+		Name:   "gcmode",
+		Usage:  `GC mode to use, either "full" or "archive". Use "archive" for full accurate state (for example, 'admin.supply')`,
+		Value:  "archive",
+		Action: checkStringFlag,
 	}
 )
+
+func checkStringFlag(ctx context.Context, cmd *cli.Command, v string) error {
+	if strings.HasPrefix(v, "-") {
+		return fmt.Errorf("uh oh, flag value looks like a flag: %q", v)
+	}
+	return nil
+}
+
 var (
 	// Aquahash settings
 	AquahashCacheDirFlag = &cli.StringFlag{
@@ -511,6 +522,15 @@ var (
 		Name:  "nokeys",
 		Usage: "Disables keystore entirely (env: NO_KEYS)",
 		Value: sense.EnvBool(sense.Getenv("NO_KEYS")) || sense.EnvBool(sense.Getenv("NOKEYS")), // both just in case
+		Action: func(ctx context.Context, cmd *cli.Command, v bool) error {
+			if v {
+				os.Setenv("NO_KEYS", "1")
+				if !sense.IsNoKeys() {
+					return fmt.Errorf("failed to set NO_KEYS=1")
+				}
+			}
+			return nil
+		},
 	}
 	NoSignFlag = &cli.BoolFlag{
 		Name:  "nosign",

@@ -41,6 +41,7 @@ import (
 	"gitlab.com/aquachain/aquachain/p2p/netutil"
 	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
+	"gitlab.com/aquachain/aquachain/subcommands/buildinfo"
 )
 
 const CommandHelpTemplate = `{{.cmd.Name}}{{if .cmd.Subcommands}} command{{end}}{{if .cmd.Flags}} [command options]{{end}} [arguments...]
@@ -151,7 +152,7 @@ func setNodeUserIdent(cmd *cli.Command, cfg *node.Config) {
 // returns chainname, chaincfg, bootnodes, datadir
 func getStuff(cmd *cli.Command) (string, *params.ChainConfig, []*discover.Node, DirectoryConfig) {
 	chainName := cmd.String(aquaflags.ChainFlag.Name)
-	log.Warn("chainName", "chainName", chainName)
+	// log.Info("chainName", "chainName", chainName)
 	if chainName == "" {
 		Fatalf("No chain selected")
 		panic("no chain name")
@@ -164,12 +165,12 @@ func getStuff(cmd *cli.Command) (string, *params.ChainConfig, []*discover.Node, 
 		if err == nil && stat.IsDir() {
 			chaincfg, err = params.LoadChainConfigFile(expected)
 			if err != nil {
-				Fatalf("Failed to load custom chain config: %v", err)
+				Fatalf("Failed to load custom chain config by name %q: %v", chainName, err)
 			}
 		}
 	}
 	if chaincfg == nil {
-		Fatalf("invalid chain name: %q", cmd.String(aquaflags.ChainFlag.Name))
+		Fatalf("invalid chain name: %q", chainName)
 		panic("bad chain name")
 	}
 	switch chainName { // TODO: remove once disabled chain-flags are cleaned
@@ -181,20 +182,29 @@ func getStuff(cmd *cli.Command) (string, *params.ChainConfig, []*discover.Node, 
 		cmd.Set(aquaflags.Testnet2Flag.Name, "true")
 	case "testnet3":
 		cmd.Set(aquaflags.Testnet3Flag.Name, "true")
+	case "aqua":
+		// ok, skip warning
+	default:
+		log.Warn("unhandled chain name, trying anyway", "chain", chainName)
 	}
-	return chainName, chaincfg, getBootstrapNodes(cmd), switchDatadir(cmd, chaincfg)
+	return chainName, chaincfg, getBootstrapNodes(chainName, cmd.String(aquaflags.BootnodesFlag.Name), cmd.IsSet(aquaflags.BootnodesFlag.Name)), switchDatadir(cmd, chaincfg)
 }
 
-func getBootstrapNodes(cmd *cli.Command) []*discover.Node {
-	if cmd.IsSet(aquaflags.BootnodesFlag.Name) { // custom bootnodes flag
-		return StringToBootstraps(strings.Split(cmd.String(aquaflags.BootnodesFlag.Name), ","))
-	}
-	if cmd.IsSet(aquaflags.NoDiscoverFlag.Name) {
-		return []*discover.Node{}
-	}
-	chainName := cmd.String(aquaflags.ChainFlag.Name)
-	if chainName == "" {
-		panic("woops") // should be already set
+func getBootstrapNodes(chainName string, customBootstrapNodes string, forcecustom bool) []*discover.Node {
+	// if cmd.IsSet(aquaflags.BootnodesFlag.Name) { // custom bootnodes flag
+	// 	return StringToBootstraps(strings.Split(cmd.String(aquaflags.BootnodesFlag.Name), ","))
+	// }
+	// if cmd.IsSet(aquaflags.NoDiscoverFlag.Name) {
+	// 	return []*discover.Node{}
+	// }
+	// chainName := cmd.String(aquaflags.ChainFlag.Name)
+	// if chainName == "" {
+	// 	panic("woops") // should be already set
+	// }
+
+	if forcecustom || customBootstrapNodes != "" { // allow `--bootstrap ""`` to keep discovery on but no initial bootnodes
+		x := StringToBootstraps(strings.Split(customBootstrapNodes, ","))
+		log.Info("using custom bootstrap nodes", "n", len(x))
 	}
 	var urls []string
 	switch chainName {
@@ -285,7 +295,7 @@ func getListenAddress(cmd *cli.Command) string {
 	var listenaddr string
 	chainName := cmd.String(aquaflags.ChainFlag.Name)
 	if chainName == "" {
-		panic("no chain name")
+		panic("getListenAddress: no chain name")
 	}
 	chainCfg := params.GetChainConfig(chainName)
 	if chainCfg != nil && chainCfg.DefaultPortNumber != 0 {
@@ -336,10 +346,6 @@ func splitAndTrim(input string) []string {
 // command line flags, returning empty if the HTTP endpoint is disabled.
 func setHTTP(cmd *cli.Command, cfg *node.Config) {
 
-	var nokeys = sense.IsNoKeys()
-	if nokeys {
-		cfg.NoKeys = true
-	}
 	if !cmd.Bool(aquaflags.RPCEnabledFlag.Name) { // require -rpc flag
 		cfg.HTTPHost = ""
 		cfg.HTTPPort = 0
@@ -554,6 +560,18 @@ func SetP2PConfig(cmd *cli.Command, cfg *p2p.Config) {
 	if cmd.IsSet(aquaflags.MaxPendingPeersFlag.Name) {
 		cfg.MaxPendingPeers = int(cmd.Int(aquaflags.MaxPendingPeersFlag.Name))
 	}
+	if cmd.IsSet(aquaflags.NoDiscoverFlag.Name) {
+		cfg.NoDiscovery = true
+	}
+
+	chainName := cmd.String(aquaflags.ChainFlag.Name)
+	if chainName == "" {
+		panic("no chain name")
+	}
+	// testnet2 has no discovery/peers
+	if chainName == "testnet2" {
+		cfg.NoDiscovery = true
+	}
 
 	if cmd.IsSet(aquaflags.OfflineFlag.Name) {
 		log.Info("Offline mode enabled")
@@ -562,17 +580,16 @@ func SetP2PConfig(cmd *cli.Command, cfg *p2p.Config) {
 		cfg.NAT = ""
 		cfg.BootstrapNodes = nil
 		// also set aqua.SyncMode ...
-	} else {
-		log.Info("Listen Address:", "tcp+udp", cfg.ListenAddr)
+	}
+	{
+		k := "tcp+udp"
+		if cfg.NoDiscovery {
+			k = "tcp"
+		}
+		log.Info("Listen Address:", "protocol", k, "addr", cfg.ListenAddr)
 		log.Debug("Maximum peer count", "AQUA", cfg.MaxPeers)
 	}
 
-	if cmd.IsSet(aquaflags.NoDiscoverFlag.Name) {
-		cfg.NoDiscovery = true
-	}
-	if cmd.Bool(aquaflags.Testnet2Flag.Name) {
-		cfg.NoDiscovery = true
-	}
 	if netrestrict := cmd.String(aquaflags.NetrestrictFlag.Name); netrestrict != "" {
 		list, err := netutil.ParseNetlist(netrestrict)
 		if err != nil {
@@ -581,7 +598,7 @@ func SetP2PConfig(cmd *cli.Command, cfg *p2p.Config) {
 		cfg.NetRestrict = list
 	}
 
-	if cmd.Bool(aquaflags.DeveloperFlag.Name) {
+	if chainName == "dev" {
 		// --dev mode can't use p2p networking.
 		cfg.MaxPeers = 0
 		cfg.ListenAddr = "127.0.0.1:0" // random local port
@@ -626,6 +643,7 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	if chaincfg == nil {
 		panic("switchDatadir: no chain config")
 	}
+	msg := "set datadir"
 	chainName := chaincfg.Name()
 	if chainName == "" {
 		panic("chain config has no name, use params.AddChainConfig or add a chain to params package, before switchDatadir")
@@ -652,7 +670,7 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	default:
 		cfg.KeyStoreDir = filepath.Join(cfg.DataDir, "keystore")
 	}
-	log.Info("assumed datadir", "path", cfg.DataDir, "chain", chainName)
+	log.Info(msg, "Using datadir", cfg.DataDir, "chain", chainName)
 	return cfg
 
 	// switch {
@@ -714,24 +732,53 @@ func SetNodeConfig(cmd *cli.Command, cfg *node.Config) error {
 	)
 
 	chainName, chaincfg, bootstrapNodes, directoryCfg = getStuff(cmd)
-	log.Info("Loading...",
+	log.Info("Chain Configuration...",
 		"chain", chainName,
 		"chainID", chaincfg.ChainId,
 		"datadir", directoryCfg.DataDir,
 		"keystore", directoryCfg.KeyStoreDir,
-		"bootnodes", len(bootstrapNodes),
-		"rpc", cfg.HTTPHost,
-		"ws", cfg.WSHost,
-		"p2p", cfg.P2P.ListenAddr,
+	)
+
+	hTTPHost := "none"
+	if cfg.HTTPHost != "" {
+		hTTPHost = cfg.HTTPHost
+	}
+	wSHost := "none"
+	if cfg.WSHost != "" {
+		wSHost = cfg.WSHost
+	}
+	listenAddr := "none"
+	if cfg.P2P.ListenAddr != "" {
+		listenAddr = cfg.P2P.ListenAddr
+	}
+
+	log.Info("Network Configuration",
 		"ipc", cfg.IPCPath,
-		"nokeys", cfg.NoKeys,
+		"rpc", hTTPHost,
+		"ws", wSHost,
+		"p2p", listenAddr,
+		"disco", !cfg.P2P.NoDiscovery,
+		"bootnodes", len(bootstrapNodes),
+		"nokeys", sense.IsNoKeys(),
+		"nosign", sense.IsNoSign(),
 	)
 	cfg.DataDir = directoryCfg.DataDir
-	cfg.KeyStoreDir = directoryCfg.KeyStoreDir
+	var nokeys = sense.IsNoKeys()
+	if nokeys {
+		cfg.NoKeys = true
+	}
+	if !nokeys {
+		directoryCfg.KeyStoreDir = ""
+	} else {
+		cfg.KeyStoreDir = directoryCfg.KeyStoreDir
+	}
 	if cfg.KeyStoreDir == "" {
 		cfg.NoKeys = true
 		os.Setenv("NO_KEYS", "true") // might be too late
 		log.Warn("keystore set to empty string, disabling keys")
+		if !sense.IsNoKeys() {
+			return fmt.Errorf("could not set NOKEYS mode")
+		}
 	}
 	cfg.P2P.ChainId = chaincfg.ChainId.Uint64()
 	cfg.P2P.BootstrapNodes = bootstrapNodes
@@ -741,14 +788,11 @@ func SetNodeConfig(cmd *cli.Command, cfg *node.Config) error {
 	setHTTP(cmd, cfg)
 	setWS(cmd, cfg)
 	setNodeUserIdent(cmd, cfg)
-	if cmd.IsSet(aquaflags.NoKeysFlag.Name) {
-		cfg.NoKeys = cmd.Bool(aquaflags.NoKeysFlag.Name)
-		log.Info("no keys mode", "enabled", cfg.NoKeys)
+
+	if cmd.IsSet(aquaflags.UseUSBFlag.Name) && !buildinfo.CGO {
+		Fatalf("Option %q requires CGO support", aquaflags.UseUSBFlag.Name)
 	}
-	if cfg.NoKeys {
-		log.Info("No-Keys mode")
-	}
-	if cmd.IsSet(aquaflags.UseUSBFlag.Name) {
+	if cmd.IsSet(aquaflags.UseUSBFlag.Name) || sense.EnvBool("USE_USB") {
 		cfg.UseUSB = cmd.Bool(aquaflags.UseUSBFlag.Name)
 	}
 	if cmd.IsSet(aquaflags.RPCBehindProxyFlag.Name) || sense.EnvBool("RPC_BEHIND_PROXY") {
@@ -862,12 +906,11 @@ func setHardforkFlagParams(cmd *cli.Command, chaincfg *params.ChainConfig) {
 	}
 }
 
-// SetAquaConfig applies aqua-related command line flags to the config.
-func SetAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
+// SetAquaConfig applies aqua-related command line flags to the config, or fatal error
+func SetupAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 	// Avoid conflicting network flags
 	// note: these are disabled flags, but Set is still called before this function
-	checkExclusive(cmd, aquaflags.DeveloperFlag, aquaflags.TestnetFlag, aquaflags.Testnet2Flag, aquaflags.NetworkEthFlag)
-	checkExclusive(cmd, aquaflags.DeveloperFlag, aquaflags.NoKeysFlag)
+	// checkExclusive(cmd, aquaflags.DeveloperFlag, aquaflags.NoKeysFlag) have fun without keys on dev chain
 	checkExclusive(cmd, aquaflags.FastSyncFlag, aquaflags.SyncModeFlag, aquaflags.OfflineFlag)
 	if cmd.Bool(aquaflags.AlertModeFlag.Name) {
 		cfgAlerts, err := alerts.ParseAlertConfig()
@@ -938,7 +981,7 @@ func SetAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 		cfg.EnablePreimageRecording = cmd.Bool(aquaflags.VMEnableDebugFlag.Name)
 	}
 
-	if cmd.Bool(aquaflags.DeveloperFlag.Name) {
+	if chaincfg.Name() == "dev" {
 		// Create new developer account or reuse existing one
 		var (
 			developer accounts.Account
@@ -1130,23 +1173,38 @@ type MigratedCommand struct {
 	Action func(context.Context, *cli.Command) error
 }
 
+func applyFlagsOneWay(from, to *cli.Command, flags ...cli.Flag) {
+	for _, flag := range flags {
+		if !from.IsSet(flag.Names()[0]) {
+			continue
+		}
+		for _, name := range flag.Names() {
+			log.Trace("Migrating flag", "name", name, "value", from.Value(name))
+			if to.IsSet(name) && to.Value(name) != from.Value(name) {
+				Fatalf("Flag %q already set to %q", name, to.Value(name))
+			}
+			if !to.IsSet(name) {
+				if err := to.Set(name, from.String(name)); err != nil {
+					Fatalf("Failed to set flag %q: %v", name, err)
+					return // unreachable
+				}
+
+			}
+		}
+	}
+}
+
 func (m *MigratedCommand) Run(ctx context.Context, cmd *cli.Command) error {
-	cmdmap := map[string]string{}
-	log.Debug("migrating command", "name", cmd.Name,
+	// cmdmap := map[string]string{}
+	log.Trace("migrating command", "name", cmd.Name,
 		"flags", cmd.FlagNames(), "rootname", cmd.Root().Name, "rootflags", cmd.Root().FlagNames(),
 		"local", cmd.LocalFlagNames(), "args", cmd.Arguments)
-	for _, c := range cmd.Commands {
-		cmdmap[c.Name] = c.Name
-	}
-	for _, name := range cmd.Root().FlagNames() {
-		if cmd.Root().IsSet(name) { // set all flags just in case
-			if !cmd.IsSet(name) {
-				log.Debug("migrating flag from global to subcommand", "name", name, "value", cmd.Root().String(name))
-			}
-			cmd.Set(name, cmd.Root().String(name))
-		}
+	// for _, c := range cmd.Commands {
+	// 	cmdmap[c.Name] = c.Name
+	// }
 
-	}
+	applyFlagsOneWay(cmd.Root(), cmd)
+	applyFlagsOneWay(cmd, cmd.Root())
 	// log.Warn("running migrated action", "name", cmd.Name, "args", cmd.Args().Slice(), "flagsEnabled", cmd.LocalFlagNames())
 	return m.Action(ctx, cmd)
 }
@@ -1181,7 +1239,7 @@ func MakeConfigNode(ctx context.Context, cmd *cli.Command, gitCommit string, cli
 		Fatalf("Failed to create the protocol stack: %v", err)
 	}
 
-	SetAquaConfig(cmd, stack, cfgptr.Aqua)
+	SetupAquaConfig(cmd, stack, cfgptr.Aqua)
 	if cmd.IsSet(aquaflags.AquaStatsURLFlag.Name) {
 		cfgptr.Aquastats.URL = cmd.String(aquaflags.AquaStatsURLFlag.Name)
 	}

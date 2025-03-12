@@ -159,7 +159,7 @@ func TranslateFatalError(err error) error {
 	return err
 }
 
-// GracefulShutdown (when configured) initiates a graceful shutdown of the
+// GracefulShutdown (when configured) returns immediately and initiates a graceful shutdown of the
 // entire stack (chain, rpc, p2p, etc) and logs the cause of the shutdown.
 //
 // After 10 seconds the process should panic
@@ -174,15 +174,17 @@ func GracefulShutdown(cause error) {
 		}
 	}
 	cancelcausefunc(cause) // this should shutdown the stack
-	go func() {
-		for i := 10; i > 0; i-- {
-			root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "seconds", i})
-			time.Sleep(time.Second)
-		}
-		// panic big
-		debug.SetTraceback("all")
-		panic(cause)
-	}()
+	go notifyGracefulShutdown(cause)
+}
+
+func notifyGracefulShutdown(cause error) {
+	for i := 10; i > 0; i-- {
+		time.Sleep(time.Second) // program should quit before this first sleep
+		root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "seconds", i})
+	}
+	// panic big
+	debug.SetTraceback("all")
+	panic(cause)
 }
 
 var Caller = stack.Caller

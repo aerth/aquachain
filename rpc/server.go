@@ -96,7 +96,9 @@ var allow_sign_inProc = sense.EnvBool("UNSAFE_ALLOW_SIGN_INPROC") // testing
 // - Sign
 // - SendTransaction
 func (s *Server) RegisterName(name string, rcvr interface{}) (methodNames []string, err error) {
-
+	if rcvr == nil {
+		return nil, fmt.Errorf("rpc.Register: nil rcvr")
+	}
 	if s.services == nil {
 		s.services = make(serviceRegistry)
 	}
@@ -105,11 +107,16 @@ func (s *Server) RegisterName(name string, rcvr interface{}) (methodNames []stri
 	svc.typ = reflect.TypeOf(rcvr)
 	rcvrVal := reflect.ValueOf(rcvr)
 
+	// log.Info("registering name", "name", name, "rcvr", rcvrVal, "type", svc.typ, "caller2", log.Caller(2))
 	if name == "" {
 		return nil, fmt.Errorf("no service name for type %s", svc.typ.String())
 	}
-	if !isExported(reflect.Indirect(rcvrVal).Type().Name()) {
-		return nil, fmt.Errorf("%s is not exported", reflect.Indirect(rcvrVal).Type().Name())
+	indirect := reflect.Indirect(rcvrVal)
+	if !indirect.IsValid() {
+		return nil, fmt.Errorf("invalid type %s", svc.typ.String())
+	}
+	if !isExported(indirect.Type().Name()) {
+		return nil, fmt.Errorf("%s is not exported", indirect.Type().Name())
 	}
 
 	methods, subscriptions := suitableCallbacks(rcvrVal, svc.typ)
@@ -281,7 +288,12 @@ func (s *Server) serveRequest(name string, codec ServerCodec, singleShot bool, o
 		pend.Add(1)
 
 		go func(reqs []*serverRequest, batch bool) {
-			defer pend.Done()
+			defer func() {
+				pend.Done()
+				if r := recover(); r != nil {
+					log.Error("rpc server recovered from panic", "error", fmt.Sprintf("%v", r))
+				}
+			}()
 			if batch {
 				s.execBatch(ctx, codec, reqs)
 			} else {

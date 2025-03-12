@@ -95,7 +95,7 @@ func DefaultDatadirByChain(cfg *params.ChainConfig) string {
 	if cfg == nil {
 		log.GracefulShutdownf("selecting default mainnet dir for nil chain config")
 	}
-	def := defaultDataDir() // eg: ~/.aquachain
+	def := defaultDataDir() // eg: ~/.aquachain or AQUA_DATADIR
 	if cfg == params.MainnetChainConfig {
 		return def
 	}

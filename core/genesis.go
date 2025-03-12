@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"gitlab.com/aquachain/aquachain/aquadb"
 	"gitlab.com/aquachain/aquachain/common"
@@ -365,9 +366,12 @@ func DefaultGenesisByName(name string) *Genesis {
 
 }
 
+var bootTime = time.Now() // TODO dedupe
 // DefaultGenesisBlock returns the Aquachain main net genesis block.
 func NewDefaultGenesisBlock() *Genesis {
-	log.Warn("Using default genesis block", "caller", log.Caller(1))
+	if time.Since(bootTime) > time.Second { // this should be called once
+		log.Warn("Using default genesis block", "caller", log.Caller(1))
+	}
 	return &Genesis{
 		Config:     params.MainnetChainConfig,
 		Nonce:      42,

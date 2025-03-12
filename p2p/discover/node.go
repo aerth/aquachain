@@ -308,15 +308,15 @@ func HexID(in string) (NodeID, error) {
 	if in[:2] == "0x" {
 		in = in[2:]
 	}
-	defer func() {
-		log.Debug("hexid", "in", in, "out", fmt.Sprintf("%x", in))
-	}()
+	id := NodeID{}
+	// defer func() {
+	// 	log.Debug("hexid", "in", in, "out", id.String())
+	// }()
 
 	if l := len(in); l != NodeIDBits/4 { // 512 / 4 = 128
 		return NodeID{}, fmt.Errorf("wrong length, want 128 hex chars")
 	}
 
-	id := NodeID{}
 	dehex, err := hex.Decode(id[:], []byte(in))
 	if err != nil {
 		return id, err
@@ -336,6 +336,9 @@ func HexID(in string) (NodeID, error) {
 		}
 	}
 
+	if id.String() != in {
+		return id, fmt.Errorf("parsed NodeID %q does not match input %q", id.String(), in)
+	}
 	return id, nil
 }
 

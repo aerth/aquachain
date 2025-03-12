@@ -31,6 +31,7 @@ import (
 	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/p2p/netutil"
 	"gitlab.com/aquachain/aquachain/rlp"
+	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
 const Version = 4
@@ -75,6 +76,29 @@ const (
 	aquafindnodePacket
 	aquaneighborsPacket
 )
+
+func PacketName(ptype byte) string {
+	switch ptype {
+	case ethpingPacket:
+		return "ethping"
+	case ethpongPacket:
+		return "ethpong"
+	case ethfindnodePacket:
+		return "ethfindnode"
+	case ethneighborsPacket:
+		return "ethneighbors"
+	case aquapingPacket:
+		return "aquaping"
+	case aquapongPacket:
+		return "aquapong"
+	case aquafindnodePacket:
+		return "aquafindnode"
+	case aquaneighborsPacket:
+		return "aquaneighbors"
+	default:
+		return fmt.Sprintf("unknown(%d)", ptype)
+	}
+}
 
 // RPC request structures
 type (
@@ -402,6 +426,8 @@ func (t *udp) pending(id NodeID, ptype byte, callback func(interface{}) bool) <-
 func (t *udp) handleReply(from NodeID, ptype byte, req packet) bool {
 	matched := make(chan bool, 1)
 	select {
+	case <-mainctxs.Main().Done():
+		return false
 	case t.gotreply <- reply{from, ptype, req, matched}:
 		// loop will handle it
 		return <-matched
@@ -449,6 +475,11 @@ func (t *udp) loop() {
 		resetTimeout()
 
 		select {
+		case <-mainctxs.Main().Done():
+			for el := plist.Front(); el != nil; el = el.Next() {
+				el.Value.(*pending).errc <- errClosed
+			}
+			return
 		case <-t.closing:
 			for el := plist.Front(); el != nil; el = el.Next() {
 				el.Value.(*pending).errc <- errClosed
@@ -461,8 +492,12 @@ func (t *udp) loop() {
 
 		case r := <-t.gotreply:
 			var matched bool
+			var p *pending
+			log.Info("got a discovery reply", "from", r.from, "type", PacketName(r.ptype), "numPending", plist.Len())
+
+			// search for a matching pending
 			for el := plist.Front(); el != nil; el = el.Next() {
-				p := el.Value.(*pending)
+				p = el.Value.(*pending)
 				if p.from == r.from && p.ptype == r.ptype {
 					matched = true
 					// Remove the matcher if its callback indicates
@@ -475,7 +510,13 @@ func (t *udp) loop() {
 					}
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
+					log.Info("  expected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
 				}
+			}
+			if !matched && p == nil {
+				log.Warn("unexpected reply", "from", r.from, "type", PacketName(r.ptype))
+			} else if !matched {
+				log.Warn("unexpected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
 			}
 			r.matched <- matched
 
@@ -620,6 +661,34 @@ func shorten[T any](a []T, n int) []T {
 
 var debugpacket = sense.Getenv("DEBUG_DISCO") == "1"
 
+func showpacket(decoded packet, from *net.UDPAddr, err error) {
+	name := decoded.name()
+	fn := log.Trace
+	if err != nil {
+		fn = log.Warn
+	}
+	switch x := decoded.(type) {
+	case *neighbors:
+		fn("<< "+name, "addr", from, "neighbors", len(x.Nodes), "peers", shorten(x.Nodes, 4))
+	case *findnode:
+		fn("<< "+name, "addr", from, "target", x.Target)
+		if err != nil {
+			fn("and", "packetTo", x.Target.String())
+		}
+	case *ping:
+		fn("<< "+name, "addr", from, "from", x.From.UDP, "to", x.To)
+	case *pong:
+		d := time.Until(time.Unix(int64(x.Expiration), 0))
+		if d < time.Millisecond*20 {
+			log.Warn("<< "+name, "addr", from, "exp", d, "to", x.To)
+		} else {
+			fn("<< "+name, "addr", from, "exp", d, "to", x.To)
+		}
+	default:
+		log.Warn("<< "+name, "addr", from, "unknown", x)
+	}
+}
+
 func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 	packet, fromID, hash, err := decodePacket(t.netcompat(), buf)
 	if err != nil {
@@ -627,30 +696,13 @@ func (t *udp) handlePacket(from *net.UDPAddr, buf []byte) error {
 		return err
 	}
 	if debugpacket {
-		name := packet.name()
-		switch x := packet.(type) {
-		case *neighbors:
-			log.Trace("<< "+name, "addr", from, "neighbors", len(x.Nodes), "peers", shorten(x.Nodes, 4))
-		case *findnode:
-			log.Trace("<< "+name, "addr", from, "target", x.Target)
-		case *ping:
-			log.Trace("<< "+name, "addr", from, "from", x.From.UDP, "to", x.To)
-		case *pong:
-			d := time.Until(time.Unix(int64(x.Expiration), 0))
-			if d < time.Millisecond*20 {
-				log.Warn("<< "+name, "addr", from, "exp", d, "to", x.To)
-			} else {
-				log.Trace("<< "+name, "addr", from, "exp", d, "to", x.To)
-			}
-		default:
-			log.Warn("<< "+name, "addr", from, "unknown", x)
-		}
-
+		showpacket(packet, from, nil)
 	}
 	err = packet.handle(t, from, fromID, hash)
 	bug1 := err == errUnsolicitedReply && from.IP.String() == t.self.IP.String()
 	if !bug1 && err != nil {
-		log.Error("Failed to handle discv4 packet", "addr", from, "err", err)
+		showpacket(packet, from, err)
+		log.Error("Failed to handle discv4 packet", "addr", from, "err", err, "packet", packet.name())
 	}
 	return err
 }

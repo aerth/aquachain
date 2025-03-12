@@ -41,10 +41,10 @@ var (
 		Usage: "Log in JSON format, env:JSONLOG=1 (compatible with prettylog, jq, etc.)",
 		Value: sense.EnvBool("JSONLOG"),
 	}
-	verbosityFlag = &cli.IntFlag{
+	verbosityFlag = &cli.StringFlag{
 		Name:  "verbosity",
-		Usage: "Logging verbosity: 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
-		Value: int64(log.GetLevelFromEnv()),
+		Usage: "Logging verbosity: name or number.. 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
+		Value: log.GetUnparsedLevelFromEnv(),
 	}
 	vmoduleFlag = &cli.StringFlag{
 		Name:  "vmodule",
@@ -104,11 +104,11 @@ var Flags = []cli.Flag{
 
 func SetupLog(ctx context.Context, cmd *cli.Command) error {
 	if cmd == nil {
-		log.SetGlogger(log.Initglogger(true, int64(log.LvlWarn), true, false))
+		log.SetGlogger(log.Initglogger(true, sense.EnvOr("TESTLOGLVL", "warn"), true, false))
 		log.Warn("Test Log Mode On")
 		return nil
 	}
-	log.SetGlogger(log.Initglogger(cmd.Bool(debugFlag.Name), cmd.Int(verbosityFlag.Name), cmd.Bool(logcolorflag.Name), cmd.Bool(logjsonflag.Name)))
+	log.SetGlogger(log.Initglogger(cmd.Bool(debugFlag.Name), cmd.String(verbosityFlag.Name), cmd.Bool(logcolorflag.Name), cmd.Bool(logjsonflag.Name)))
 	return nil
 }
 
