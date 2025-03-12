@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -222,6 +223,7 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 			}
 			stateReader := aquaclient.NewClient(rpcClient)
 			defer rpcClient.Close()
+			defer am.Close()
 			// Open any wallets already attached
 			for _, wallet := range stack.AccountManager().Wallets() {
 				if err := wallet.Open(""); err != nil {
@@ -229,27 +231,37 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 				}
 			}
 			// Listen for wallet event till termination
-			for event := range events {
-				switch event.Kind {
-				case accounts.WalletArrived:
-					if err := event.Wallet.Open(""); err != nil {
-						log.Warn("New wallet appeared, failed to open", "url", event.Wallet.URL(), "err", err)
-					}
-				case accounts.WalletOpened:
-					status, _ := event.Wallet.Status()
-					log.Info("New wallet appeared", "url", event.Wallet.URL(), "status", status)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-mainctx.Done():
+					return
+				case event := <-events:
 
-					if event.Wallet.URL().Scheme == "ledger" {
-						event.Wallet.SelfDerive(accounts.DefaultLedgerBaseDerivationPath, stateReader)
-					} else {
-						event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
-					}
+					log.Info("Wallet event", "kind", event.Kind.String(), "wallet", filepath.Base(event.Wallet.URL().String()))
+					switch event.Kind {
+					case accounts.WalletArrived:
+						if err := event.Wallet.Open(""); err != nil {
+							log.Warn("New wallet appeared, failed to open", "url", filepath.Base(event.Wallet.URL().String()), "err", err)
+						}
+					case accounts.WalletOpened:
+						status, _ := event.Wallet.Status()
+						log.Info("New wallet appeared", "url", filepath.Base(event.Wallet.URL().String()), "status", status)
 
-				case accounts.WalletDropped:
-					log.Info("Old wallet dropped", "url", event.Wallet.URL())
-					event.Wallet.Close()
+						if event.Wallet.URL().Scheme == "ledger" {
+							event.Wallet.SelfDerive(accounts.DefaultLedgerBaseDerivationPath, stateReader)
+						} else {
+							event.Wallet.SelfDerive(accounts.DefaultBaseDerivationPath, stateReader)
+						}
+
+					case accounts.WalletDropped:
+						log.Info("Old wallet dropped", "url", filepath.Base(event.Wallet.URL().String()))
+						event.Wallet.Close()
+					}
 				}
 			}
+
 		}()
 	}
 	// Start auxiliary services if enabled
