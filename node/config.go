@@ -244,6 +244,9 @@ func getEndpoint(host string, port int) string {
 	if host == "" {
 		return ""
 	}
+	if port == 0 {
+		return ""
+	}
 	return fmt.Sprintf("%s:%d", host, port)
 }
 
