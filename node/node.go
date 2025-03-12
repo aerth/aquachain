@@ -141,8 +141,10 @@ func New(conf *Config) (*Node, error) {
 	if err != nil {
 		return nil, err
 	}
-	if conf.KeyStoreDir != "" {
-		log.Warn("USING KEYSTORE", "custom_dir", conf.KeyStoreDir, "active", fmt.Sprintf("%T", am), "ephemeral", ephemeralKeystore)
+	if ephemeralKeystore != "" {
+		log.Warn("USING EPHEMERAL KEYSTORE", "custom_dir", conf.KeyStoreDir, "active", fmt.Sprintf("%T", am), "ephemeral", ephemeralKeystore)
+	} else if conf.KeyStoreDir != "" {
+		log.Warn("USING KEYSTORE", "custom_dir", conf.KeyStoreDir, "active", fmt.Sprintf("%T", am))
 	}
 	if conf.Logger == nil {
 		conf.Logger = log.New()
