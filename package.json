@@ -1,11 +1,10 @@
 {
+  "name": "aquachain",
+  "version": "1.7.17",
   "author": "Aquachain Authors",
   "bugs": {
     "url": "https://gitlab.com/aquachain/aquachain"
   },
   "language": "go",
-  "license": "LGPL3",
-  "name": "aquachain",
-  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
-  "version": "1.7.10"
+  "license": "LGPL3"
 }
