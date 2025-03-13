@@ -796,7 +796,7 @@ func (srv *Server) maxDialedConns() int {
 	}
 	r := srv.DialRatio
 	if r == 0 {
-		log.Warn("DialRatio not set, using default", "default", defaultDialRatio, "maxOutgoingPeers", srv.MaxPeers/defaultDialRatio)
+		log.Warn("DialRatio not set, using default", "default", defaultDialRatio, "maxOutgoingPeers", srv.MaxPeers/defaultDialRatio, "maxPeers", srv.MaxPeers)
 		r = defaultDialRatio
 	}
 	return srv.MaxPeers / r
