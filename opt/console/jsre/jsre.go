@@ -29,7 +29,7 @@ import (
 
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
-	"gitlab.com/aquachain/aquachain/internal/jsre/deps"
+	"gitlab.com/aquachain/aquachain/opt/console/jsre/deps"
 	"gitlab.com/aquachain/aquachain/opt/console/jsruntime"
 )
 
