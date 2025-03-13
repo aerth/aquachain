@@ -574,7 +574,7 @@ func (c *Console) Interactive(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
-			// User forcefully quite the console
+			// User forcefully quit the console
 			fmt.Fprintf(c.printer, "caught interrupt: %s\n, exiting", context.Cause(ctx))
 			return
 
@@ -628,14 +628,15 @@ func (c *Console) Interactive(ctx context.Context) {
 }
 
 func handleSend(c *Console) error {
-	cont, err := c.prompter.PromptConfirm("You are about to create a transaction from your Aquabase. Right?")
+	cont, err := c.prompter.PromptConfirm("You are about to sign a transaction from your Aquabase. Right?")
 	if err != nil {
+		log.Info("To switch to a different account, use 'miner.setAquabase(aqua.accounts[i])' first.")
 		return fmt.Errorf("input error: %v", err)
 	}
 	if !cont {
 		return fmt.Errorf("transaction canceled")
 	}
-	_, err = c.jsre.Run(`personal.unlockAccount(aqua.coinbase);`)
+	_, err = c.jsre.Run(`personal.unlockAccount(aqua.coinbase);`) // should prompt for pw
 	if err != nil {
 		return fmt.Errorf("error: %v", err)
 	}
@@ -702,7 +703,7 @@ func handleSend(c *Console) error {
 	runstring := `aqua.sendTransaction({from: aqua.coinbase, to: '` + destination + `', value: ` + toweistr + `});`
 	fmt.Fprintln(c.printer, runstring)
 	fmt.Fprintln(c.printer, "    -->:\n"+`aqua.sendTransaction({from: aqua.coinbase, to: '`+destination+`', value: web3.toWei(`+amount+`,'aqua')});`)
-	cont, err = c.prompter.PromptConfirm(fmt.Sprintf("REALLY Send %s to %s?", amount, destination))
+	cont, err = c.prompter.PromptConfirm(fmt.Sprintf("REALLY Broadcast %s to %s?", amount, destination))
 	if err != nil {
 		return fmt.Errorf("input error: %v", err)
 	}
