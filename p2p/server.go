@@ -649,6 +649,7 @@ func (srv *Server) run(dialstate dialer) {
 		}
 	}
 
+	ctx := mainctxs.Main()
 running:
 	for {
 		scheduleTasks()
@@ -670,7 +671,11 @@ running:
 			srv.log.Debug("Removing static node", "node", n)
 			dialstate.removeStatic(n)
 			if p, ok := peers[n.ID]; ok {
-				p.Disconnect(DiscRequested)
+				if ctx.Err() == nil {
+					p.Disconnect(DiscQuitting)
+				} else {
+					p.Disconnect(DiscRequested)
+				}
 			}
 		case op := <-srv.peerOp:
 			// This channel is used by Peers and PeerCount.
