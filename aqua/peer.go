@@ -232,7 +232,7 @@ func (p *peer) RequestReceipts(hashes []common.Hash) error {
 func printableGenesisHash(genesis common.Hash) string {
 	switch genesis {
 	case params.MainnetGenesisHash:
-		return "mainnet"
+		return "aqua"
 	case params.TestnetGenesisHash:
 		return "testnet"
 	case params.Testnet2GenesisHash:

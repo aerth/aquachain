@@ -315,6 +315,11 @@ func (chainConfig *ChainConfig) GetGenesisVersion() HeaderVersion {
 func GetChainConfig(name string) *ChainConfig {
 	switch name {
 	default:
+		for _, v := range allChainConfigs {
+			if v.Name() == name {
+				return v
+			}
+		}
 		log.Warn("Unknown chain config, try aqua or testnet3", "name", name)
 		return nil
 	case "aqua":
@@ -344,26 +349,15 @@ func GetChainConfigByChainId(chainid *big.Int) *ChainConfig {
 }
 
 func ValidChainNames() []string {
-	return []string{
-		MainnetChainConfig.Name(),
-		TestnetChainConfig.Name(),
-		Testnet2ChainConfig.Name(),
-		Testnet3ChainConfig.Name(),
-		// AllAquahashProtocolChanges.Name(),
-		// TestChainConfig.Name(),
+	all := allChainConfigs
+	names := make([]string, len(all))
+	for i, v := range all {
+		names[i] = v.Name()
 	}
+	return names
 }
-func ValidChainConfigs() []*ChainConfig {
-	return []*ChainConfig{
-		MainnetChainConfig,
-		TestnetChainConfig,
-		Testnet2ChainConfig,
-		Testnet3ChainConfig,
-		// AllAquahashProtocolChanges,
-		// TestChainConfig,
-	}
-}
-func AllChainConfigs() []*ChainConfig {
+
+func defaultChainConfigs() []*ChainConfig {
 	return []*ChainConfig{
 		MainnetChainConfig,
 		TestnetChainConfig,
@@ -374,12 +368,24 @@ func AllChainConfigs() []*ChainConfig {
 	}
 }
 
-var allChainConfigs = AllChainConfigs()
-
-func SetAllChainConfigs(cfgs []*ChainConfig) {
-	log.Warn("setting all chain configs", "count", len(cfgs))
-	allChainConfigs = cfgs
+func (c *ChainConfig) IsKnown() bool {
+	if !IsValid(c) {
+		return false
+	}
+	for _, cfg := range allChainConfigs {
+		if cfg == c {
+			return true
+		}
+	}
+	return false
 }
+
+var allChainConfigs = defaultChainConfigs()
+
+// func SetAllChainConfigs(cfgs []*ChainConfig) {
+// 	log.Warn("setting all chain configs", "count", len(cfgs))
+// 	allChainConfigs = cfgs
+// }
 
 func AddChainConfig(name string, cfg *ChainConfig) {
 	if GetChainConfigByChainId(cfg.ChainId) != nil {
@@ -398,7 +404,7 @@ func AddChainConfig(name string, cfg *ChainConfig) {
 
 // this map might be swapped when adding custom chains
 var chainNames = map[string]*ChainConfig{
-	"mainnet":  MainnetChainConfig,
+	"aqua":     MainnetChainConfig,
 	"testnet":  TestnetChainConfig,
 	"testnet2": Testnet2ChainConfig,
 	"testnet3": Testnet3ChainConfig,

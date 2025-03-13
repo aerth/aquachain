@@ -196,7 +196,7 @@ func servebootstrap(bootstrapcfg BootstrapConfig) {
 		// set port from chainid
 		switch bootstrapcfg.ChainId {
 		case params.MainnetChainConfig.ChainId.Uint64():
-			bootstrapcfg.ChainName = "mainnet"
+			bootstrapcfg.ChainName = "aqua"
 			addr.Port = params.MainnetChainConfig.DefaultBootstrapPort
 		case params.TestnetChainConfig.ChainId.Uint64():
 			bootstrapcfg.ChainName = "testnet"
@@ -214,7 +214,7 @@ func servebootstrap(bootstrapcfg BootstrapConfig) {
 		switch addr.Port { // no custom chain, use port number to guess
 		case params.MainnetChainConfig.DefaultBootstrapPort:
 			bootstrapcfg.ChainId = params.MainnetChainConfig.ChainId.Uint64()
-			bootstrapcfg.ChainName = "mainnet"
+			bootstrapcfg.ChainName = "aqua"
 		case params.TestnetChainConfig.DefaultBootstrapPort:
 			bootstrapcfg.ChainId = params.TestnetChainConfig.ChainId.Uint64()
 			bootstrapcfg.ChainName = "testnet"
