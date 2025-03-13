@@ -187,7 +187,7 @@ func (h *Header) Size() common.StorageSize {
 	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen()+h.Time.BitLen())/8)
 }
 
-func RlpHash(version byte, x interface{}) (h common.Hash) {
+func RlpHash(version byte, x any) (h common.Hash) {
 	return rlpHash(version, x)
 }
 
