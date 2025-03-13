@@ -61,11 +61,18 @@ func FileExist(filePath string) bool {
 	return true
 }
 
-func AbsolutePath(Datadir string, filename string) string {
+func AbsolutePath(datadir string, filename string) string {
 	if filepath.IsAbs(filename) {
 		return filename
 	}
-	return filepath.Join(Datadir, filename)
+	if !strings.HasSuffix(datadir, "/") {
+		var err error
+		datadir, err = filepath.Abs(datadir)
+		if err != nil {
+			panic("making AbsolutePath: " + err.Error())
+		}
+	}
+	return filepath.Join(datadir, filename)
 }
 
 var EnvBool = sense.EnvBool

@@ -1143,6 +1143,9 @@ func MakeConsolePreloads(cmd *cli.Command) []string {
 	preloads := []string{}
 
 	assets := cmd.String(aquaflags.JavascriptDirectoryFlag.Name)
+	if assets == "" {
+		assets = "."
+	}
 	for _, file := range strings.Split(cmd.String(aquaflags.PreloadJSFlag.Name), ",") {
 		preloads = append(preloads, common.AbsolutePath(assets, strings.TrimSpace(file)))
 	}

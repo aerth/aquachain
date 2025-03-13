@@ -25,6 +25,16 @@ import (
 //go:embed *.js
 var embedded embed.FS
 
+// func init() {
+// 	x, err := embedded.ReadDir(".")
+// 	if err != nil {
+// 		panic(err.Error())
+// 	}
+// 	for _, f := range x {
+// 		println(f.Name())
+// 	}
+// }
+
 func MustAsset(name string) []byte {
 	data, err := embedded.ReadFile(filepath.Base(name)) // :)
 	if err != nil {

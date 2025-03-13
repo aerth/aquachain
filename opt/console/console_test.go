@@ -86,6 +86,11 @@ type tester struct {
 	output    *bytes.Buffer
 }
 
+func TestBasic(t *testing.T) {
+	tester := newTester(t, nil)
+	defer tester.Close(t)
+}
+
 // newTester creates a test environment based on which the console can operate.
 // Please ensure you call Close() on the returned tester to avoid leaks.
 func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
@@ -168,7 +173,7 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 		Preload:          []string{"preload.js"},
 	})
 	if err != nil {
-		t.Fatalf("failed to create JavaScript console: %v", err)
+		t.Fatalf("failed to create JavaScript console: %+v", err)
 	}
 	// Create the final tester and return
 	var aquachain *aqua.Aquachain
@@ -460,6 +465,9 @@ func TestBigSmall2(t *testing.T) {
 	input := "1234500000000000000000" // wei
 	output := "1234.5"                // coin
 	bigconsole := newTester(t, nil)
+
+	println("got a console")
+
 	defer bigconsole.Close(t)
 	// jsre := New("", os.Stdout)
 	// defer jsre.Stop(false)

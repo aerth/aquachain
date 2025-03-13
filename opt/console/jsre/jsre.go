@@ -70,6 +70,7 @@ type evalReq struct {
 
 // runtime must be stopped with Stop() after use and cannot be used after stopping
 func New(assetPath string, output io.Writer) *JSRE {
+	assetPath = common.AbsolutePath(assetPath, "")
 	log.Debug("JSRE.New", "assetPath", assetPath)
 	re := &JSRE{
 		assetPath:     assetPath,
@@ -254,7 +255,7 @@ func (self *JSRE) ExecFile(file string) error {
 	self.Do(func(vm *jsruntime.Otto) {
 		script, err = vm.Compile(file, code)
 		if err != nil {
-			log.Error("failed to compile js", err, fmt.Sprintf("%+v", err))
+			log.Error("failed to compile %s", "err", fmt.Sprintf("%+v", err))
 			return
 		}
 		_, err = vm.Run(script)
@@ -262,11 +263,11 @@ func (self *JSRE) ExecFile(file string) error {
 	return err
 }
 
-// Bind assigns value v to a variable in the JS environment
-// This method is deprecated, use Set.
-func (self *JSRE) Bind(name string, v interface{}) error {
-	return self.Set(name, v)
-}
+// // Bind assigns value v to a variable in the JS environment
+// // This method is deprecated, use Set.
+// func (self *JSRE) Bind(name string, v interface{}) error {
+// 	return self.Set(name, v)
+// }
 
 // Run runs a piece of JS code.
 func (self *JSRE) Run(code string) (v jsruntime.Value, err error) {
