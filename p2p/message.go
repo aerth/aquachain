@@ -91,7 +91,7 @@ type MsgReadWriter interface {
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
 func Send(w MsgWriter, msgcode uint64, data interface{}) error {
-	log.Trace("p2p sending message", "code", Devp2pMessageTypeString(int(msgcode)))
+	// log.Trace("p2p sending message", "code", msgcode, "codestring", Devp2pMessageTypeString(int(msgcode)))
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
 		return err

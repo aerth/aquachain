@@ -156,7 +156,6 @@ type Server struct {
 	*Config
 	// Hooks for testing. These are useful because we can inhibit
 	// the whole protocol stack.
-	newRealTransport func(net.Conn) *rlpx
 	newTestTransport func(net.Conn) transportI
 	newPeerHook      func(*Peer)
 
@@ -472,9 +471,6 @@ func (srv *Server) Start(ctx context.Context) (err error) {
 	if srv.PrivateKey == nil {
 		return fmt.Errorf("p2p.Server.PrivateKey must be set to a non-nil key")
 	}
-	if srv.newRealTransport == nil {
-		srv.newRealTransport = newRLPX
-	}
 	if srv.Dialer == nil {
 		srv.Dialer = TCPDialer{&net.Dialer{Timeout: defaultDialTimeout}}
 	}
@@ -713,7 +709,7 @@ running:
 					p.events = &srv.peerFeed
 				}
 				name := truncateName(c.name)
-				srv.log.Debug("Adding p2p peer", "name", name, "addr", c.fd.RemoteAddr(), "peers", len(peers)+1, "id", c.id.TerminalString())
+				srv.log.Debug("Adding p2p peer", "name", name, "addr", c.fd.RemoteAddr(), "peers", len(peers)+1, "id", c.id.TerminalString(), "proto", c.caps)
 				go srv.runPeer(p)
 				peers[c.id] = p
 				if p.Inbound() {
@@ -795,6 +791,7 @@ func (srv *Server) maxDialedConns() int {
 	}
 	r := srv.DialRatio
 	if r == 0 {
+		log.Warn("DialRatio not set, using default", "default", defaultDialRatio, "maxOutgoingPeers", srv.MaxPeers/defaultDialRatio)
 		r = defaultDialRatio
 	}
 	return srv.MaxPeers / r
@@ -862,7 +859,8 @@ func (srv *Server) newTransport(fd net.Conn) transportI {
 	if srv.newTestTransport != nil {
 		return srv.newTestTransport(fd)
 	}
-	return srv.newRealTransport(fd)
+
+	return newRLPX(fd)
 }
 
 // SetupConn runs the handshakes and attempts to add the connection

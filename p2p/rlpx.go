@@ -87,6 +87,7 @@ type rlpx struct {
 var _ transportI = (*rlpx)(nil)
 
 func newRLPX(fd net.Conn) *rlpx {
+	// log.Trace("new rlpx", "remote", fd.RemoteAddr())
 	fd.SetDeadline(time.Now().Add(handshakeTimeout))
 	return &rlpx{fd: fd}
 }
@@ -618,10 +619,14 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 		if msg.Size > maxUint24 {
 			return errPlainMessageTooLarge
 		}
-		payload, _ := ioutil.ReadAll(msg.Payload)
+		payload, err := ioutil.ReadAll(msg.Payload)
+		if err != nil {
+			return fmt.Errorf("WriteMsg: %w", err)
+		}
 		payload = snappy.Encode(nil, payload)
 
 		msg.Payload = bytes.NewReader(payload)
+		log.Info("writing", "msg", msg.Code, "size", len(payload), "payload", msg.Payload, "type", ptype)
 		msg.Size = uint32(len(payload))
 	}
 	// write header
