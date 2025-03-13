@@ -22,6 +22,8 @@ import (
 	"math/big"
 	"reflect"
 	"sync"
+
+	"gitlab.com/aquachain/aquachain/common/log"
 )
 
 var (
@@ -432,6 +434,7 @@ func writeBigIntNoPtr(val reflect.Value, w *encbuf) error {
 
 func writeBigInt(i *big.Int, w *encbuf) error {
 	if cmp := i.Cmp(big0); cmp == -1 {
+		log.Warn("rlp: cannot encode negative *big.Int", "caller1", log.Caller(1), "caller2", log.Caller(2))
 		return fmt.Errorf("rlp: cannot encode negative *big.Int")
 	} else if cmp == 0 {
 		w.str = append(w.str, 0x80)
