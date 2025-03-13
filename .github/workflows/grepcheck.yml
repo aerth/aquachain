@@ -7,8 +7,11 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - name: Checkout this branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-tags: true
       - name: grepping for bad funcs
         run: |
           .github/grepcheck "os.LookupEnv" "sense.LookupEnv" 1;
