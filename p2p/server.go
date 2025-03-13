@@ -146,6 +146,7 @@ type Config struct {
 	ChainId uint64
 }
 
+// Gets ChainConfig by ChainId
 func (c Config) ChainConfig() *params.ChainConfig {
 	return params.GetChainConfigByChainId(big.NewInt(int64(c.ChainId))) // TODO
 }
@@ -439,12 +440,13 @@ func (srv *Server) Start(ctx context.Context) (err error) {
 
 	// p2p countdown
 	chaincfg := srv.Config.ChainConfig()
+	if chaincfg == nil {
+		log.Warn("Chain config not set, using test chainconfig")
+		chaincfg = params.TestChainConfig
+	}
+
 	doitnow := NoCountdown || sense.IsNoCountdown()
 	if !doitnow && !srv.Offline { // maybe turn off countdown
-		if chaincfg == nil {
-			log.Warn("Chain config not set, using test chainconfig")
-			chaincfg = params.TestChainConfig
-		}
 		is_normal := (chaincfg == params.MainnetChainConfig || chaincfg == params.TestnetChainConfig || chaincfg == params.Testnet2ChainConfig || chaincfg == params.Testnet3ChainConfig)
 		if !doitnow && !is_normal {
 			doitnow = true // skip for custom testnets, testing etc
@@ -519,12 +521,16 @@ func (srv *Server) startDiscovery() error {
 		realaddr *net.UDPAddr
 	)
 
+	chaincfg := srv.ChainConfig()
+	if chaincfg == nil {
+		return fmt.Errorf("p2p.Server: chain config not set")
+	}
 	addr, err := net.ResolveUDPAddr("udp", srv.ListenAddr)
 	if err != nil {
 		return err
 	}
 	if addr.Port == 0 {
-		addr.Port = srv.ChainConfig().DefaultPortNumber
+		addr.Port = chaincfg.DefaultPortNumber
 	}
 	conn, err = net.ListenUDP("udp4", addr)
 	if err != nil {

@@ -1236,7 +1236,6 @@ func MakeConfigNode(ctx context.Context, cmd *cli.Command, gitCommit string, cli
 	}
 	cfgptr.Node.Context = ctx
 	cfgptr.Node.NoInProc = cmd.Name != "" && cmd.Name != "console" && sense.Getenv("NO_INPROC") == "1"
-	cfgptr.Node.CloseMain = closemain
 	stack, err := node.New(cfgptr.Node)
 	if err != nil {
 		Fatalf("Failed to create the protocol stack: %v", err)

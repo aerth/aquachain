@@ -44,7 +44,6 @@ func testNodeConfig() *Config {
 		P2P:        &p2p.Config{PrivateKey: testNodeKey, ChainId: 1337},
 		RPCAllowIP: []string{"127.0.0.1"},
 		Context:    context.Background(),
-		CloseMain:  func(err error) { println("CloseMain", err) },
 	}
 }
 
@@ -85,9 +84,6 @@ func TestNodeLifeCycle(t *testing.T) {
 func NewTestNew(cfg *Config) (*Node, error) {
 	if cfg.Context == nil {
 		cfg.Context = context.TODO()
-	}
-	if cfg.CloseMain == nil {
-		cfg.CloseMain = func(err error) {}
 	}
 	if cfg.Name == "" {
 		cfg.Name = "tester-unknown"
