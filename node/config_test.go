@@ -28,9 +28,10 @@ import (
 
 	"gitlab.com/aquachain/aquachain/crypto"
 	"gitlab.com/aquachain/aquachain/p2p"
+	"gitlab.com/aquachain/aquachain/params"
 )
 
-var testp2p = &p2p.Config{ChainId: 10101}
+var testp2p = &p2p.Config{ChainId: params.TestChainConfig.ChainId.Uint64()}
 
 // Tests that datadirs can be successfully created, be them manually configured
 // ones or automatically generated temporary ones.
