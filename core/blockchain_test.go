@@ -1200,6 +1200,8 @@ func TestEIP161AccountRemoval(t *testing.T) {
 		}
 		genesis = gspec.MustCommit(db)
 	)
+
+	params.AddChainConfig("TestEIP161Block", gspec.Config)
 	blockchain, _ := NewBlockChain(context.TODO(), db, nil, gspec.Config, aquahash.NewFaker(), vm.Config{})
 	defer blockchain.Stop()
 
