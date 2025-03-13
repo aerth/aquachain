@@ -20,6 +20,7 @@ type AlertConfig struct {
 	Platform string // tg, email, sms
 	Token    string
 	Channel  string // tg is number
+	Nickname string // our nickname
 }
 
 func (a AlertConfig) Enabled() bool {
@@ -33,6 +34,8 @@ func Enabled() bool {
 }
 
 // Infof logs a warning message and sends an alert via ALERT_PLATFORM if configured (see ParseAlertConfig)
+//
+// message will have ac.Nickname prefix if it exists (eg: "node1: ", with a space)
 func Infof(f string, i ...any) {
 	if sense.Getenv("ALERTS_INFO") == "0" {
 		return
@@ -47,6 +50,8 @@ func Infof(f string, i ...any) {
 }
 
 // Warnf logs a warning message and sends an alert via ALERT_PLATFORM if configured (see ParseAlertConfig)
+//
+// message will have ac.Nickname prefix if it exists (eg: "node1: ", with a space)
 func Warnf(f string, i ...any) {
 	if sense.Getenv("ALERTS_WARN") == "0" {
 		return
@@ -92,6 +97,7 @@ func ParseAlertConfig() (AlertConfig, error) {
 	ac.Platform = sense.Getenv("ALERT_PLATFORM")
 	ac.Token = sense.Getenv("ALERT_TOKEN")
 	ac.Channel = sense.Getenv("ALERT_CHANNEL")
+	ac.Nickname = sense.Getenv("ALERT_NICKNAME")
 	if ac.Platform == "" {
 		return ac, fmt.Errorf("missing ALERT_PLATFORM")
 	}
@@ -136,9 +142,21 @@ func MustParseAlertConfig() AlertConfig {
 
 var ErrAlertTimeout = fmt.Errorf("alert timeout")
 
+// Send actual (used by Infof, Warnf)
+//
+// adds ac.Nickname prefix if it exists (eg: "node1: ", with a space)
+//
+// # If no donefns, will wait for the send to complete
+//
+// If donefns[0] is nil, will log errors in background
 func (ac AlertConfig) Send(msg string, donefns ...func()) error {
 	wait := len(donefns) == 0
-	println("test", msg, wait, ac.Platform, ac.Token, ac.Channel)
+	if len(donefns) == 1 && donefns[0] == nil {
+		donefns = []func(){func() {}} // dummy so we log errors
+	}
+	if ac.Nickname != "" {
+		msg = ac.Nickname + ": " + msg
+	}
 	switch ac.Platform {
 	case "none", "", "test":
 		println("alert notification", msg)
@@ -183,6 +201,7 @@ func (p Payload) Reader() io.Reader {
 	return bytes.NewReader(p.Bytes())
 }
 
+// sendTelegram for goroutine, logs if error. when finished, calls all donefns
 func sendTelegram(ctx context.Context, token string, channels string, msg string, donefns ...func()) {
 	if err := _sendTelegram(ctx, token, channels, msg); err != nil {
 		log.Error("failed to send telegram alert", "err", err.Error())
@@ -194,6 +213,7 @@ func sendTelegram(ctx context.Context, token string, channels string, msg string
 
 var TelegramMarkdownMode = "" // default is telegram default
 
+// _sendTelegram sends a message to a telegram channel
 func _sendTelegram(ctx context.Context, token string, channelsinput string, msg string) error {
 	channels := strings.Split(channelsinput, ",")
 	for _, channel := range channels {
