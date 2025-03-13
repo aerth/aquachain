@@ -37,6 +37,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/golang/snappy"
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/crypto"
 	"gitlab.com/aquachain/aquachain/crypto/ecies"
 	"gitlab.com/aquachain/aquachain/crypto/sha3"
@@ -115,7 +116,8 @@ func (t *rlpx) close(err error) {
 			// it hangs forever, since net.Pipe does not implement
 			// a write deadline. Because of this only try to send
 			// the disconnect reason message if there is no error.
-			if err := t.fd.SetWriteDeadline(time.Now().Add(discWriteTimeout)); err == nil {
+			if err0 := t.fd.SetWriteDeadline(time.Now().Add(discWriteTimeout)); err0 == nil {
+				log.Warn("sending disconnect reason", "reason", r.String(), "err", err)
 				SendItems(t.rw, discMsg, r)
 			}
 		}

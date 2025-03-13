@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"gitlab.com/aquachain/aquachain/aqua/event"
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/p2p/discover"
 	"gitlab.com/aquachain/aquachain/rlp"
 )
@@ -90,6 +91,7 @@ type MsgReadWriter interface {
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
 func Send(w MsgWriter, msgcode uint64, data interface{}) error {
+	log.Trace("p2p sending message", "code", Devp2pMessageTypeString(int(msgcode)))
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
 		return err
@@ -197,6 +199,7 @@ func (p *MsgPipeRW) ReadMsg() (Msg, error) {
 		case msg := <-p.r:
 			return msg, nil
 		case <-p.closing:
+			log.Warn("pipe closed")
 		}
 	}
 	return Msg{}, ErrPipeClosed
@@ -288,8 +291,10 @@ func (msge *msgEventer) ReadMsg() (Msg, error) {
 // WriteMsg writes a message to the underlying MsgReadWriter and emits a
 // "message sent" event
 func (msge *msgEventer) WriteMsg(msg Msg) error {
+	log.Debug("p2p writing message", "code", Devp2pMessageTypeString(int(msg.Code)), "size", msg.Size)
 	err := msge.MsgReadWriter.WriteMsg(msg)
 	if err != nil {
+		log.Warn("p2p write error", "err", err)
 		return err
 	}
 	msge.feed.Send(&PeerEvent{

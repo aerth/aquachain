@@ -51,6 +51,21 @@ const (
 	//peersMsg     = 0x05
 )
 
+func Devp2pMessageTypeString(code int) string {
+	switch code {
+	case handshakeMsg:
+		return "handshake"
+	case discMsg:
+		return "disc"
+	case pingMsg:
+		return "ping"
+	case pongMsg:
+		return "pong"
+	default:
+		return "unknown"
+	}
+}
+
 // protoHandshake is the RLP structure of the protocol handshake.
 type protoHandshake struct {
 	Version    uint64
@@ -93,6 +108,13 @@ type PeerEvent struct {
 	Protocol string          `json:"protocol,omitempty"`
 	MsgCode  *uint64         `json:"msg_code,omitempty"`
 	MsgSize  *uint32         `json:"msg_size,omitempty"`
+}
+
+func (p PeerEvent) String() string {
+	if p.MsgCode == nil {
+		return fmt.Sprintf("PeerEvent{%s %s %s}", p.Type, p.Peer, p.Protocol)
+	}
+	return fmt.Sprintf("PeerEvent{%s %s %s, %s}", p.Type, p.Peer, p.Protocol, Devp2pMessageTypeString(int(*p.MsgCode)))
 }
 
 // Peer represents a connected remote node.
@@ -186,6 +208,7 @@ func (p *Peer) Log() log.LoggerI {
 }
 
 func (p *Peer) run() (remoteRequested bool, err error) {
+	log.Info("Peer routine has started", "id", p.ID(), "name", p.Name(), "caps", p.Caps())
 	var (
 		writeStart = make(chan struct{}, 1)
 		writeErr   = make(chan error, 1)
@@ -346,20 +369,19 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 		if p.events != nil {
 			rw = newMsgEventer(rw, p.events, p.ID(), proto.Name)
 		}
-		p.log.Trace(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
+		p.log.Debug(fmt.Sprintf("Starting protocol %s/%d", proto.Name, proto.Version))
 		go func() {
-
 			defer func() {
 				if r := recover(); r != nil {
 					fmt.Println("Recovered from panic in p2p/peer:", r)
 				}
 			}()
-			err := proto.Run(p, rw)
+			err := proto.Run(p, rw) // run the protocol (should not return)
 			if err == nil {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
+				p.log.Warn(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
-			} else if err != io.EOF {
-				p.log.Trace(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
+			} else {
+				p.log.Warn(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
 			p.protoErr <- err
 			p.wg.Done()

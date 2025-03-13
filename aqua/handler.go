@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"sync"
@@ -264,7 +265,11 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		td      = pm.blockchain.GetTd(hash, number)
 	)
 	if err := p.Handshake(pm.networkId, td, hash, genesis.Hash()); err != nil {
-		p.Log().Trace("Aquachain handshake failed", "err", err)
+		if err.Error() == "EOF" {
+			p.Log().Warn("Aquachain peer rejected our handshake", "err", err, "theirs", p.Name())
+			return err
+		}
+		p.Log().Warn("Aquachain handshake failed", "err", err, "theirs", p.Name())
 		return err
 	}
 	if rw, ok := p.rw.(*meteredMsgReadWriter); ok {
@@ -293,6 +298,30 @@ func (pm *ProtocolManager) handle(p *peer) error {
 			return err
 		}
 	}
+}
+
+var errRemoteDisconnect = newEOFalias("remote disconnected")
+
+type EOFalias struct {
+	error
+}
+
+func newEOFalias(msg string) error {
+	return &EOFalias{errors.New(msg)}
+}
+
+func (e *EOFalias) Error() string {
+	return e.error.Error()
+}
+
+func (e *EOFalias) Unwrap() error {
+	return io.EOF
+}
+func (e *EOFalias) Is(err error) bool {
+	if err == io.EOF {
+		return true
+	}
+	return err == e.error
 }
 
 // handleMsg is invoked whenever an inbound message is received from a remote
