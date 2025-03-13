@@ -28,6 +28,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/math"
+	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/consensus"
 	"gitlab.com/aquachain/aquachain/consensus/aquahash/ethashdag"
 	"gitlab.com/aquachain/aquachain/core/state"
@@ -492,6 +493,8 @@ func weiToAqua(wei *big.Int) string {
 	return fmt.Sprintf("%00.2f", aqu)
 }
 
+var alwaysLogRewards = sense.EnvBool("LOG_REWARDS")
+
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
@@ -499,13 +502,26 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	if header.Coinbase == (common.Address{}) {
 		return
 	}
+	now := time.Now().Unix()
+	blocktime := header.Time.Int64()
+	logfn := log.Noop
+	if int64(now)-blocktime < 1200 { // if node is synced, log rewards to debug level
+		logfn = log.Debug
+	}
+	if alwaysLogRewards {
+		logfn = log.Info
+	}
 	// Select the correct block reward based on chain config
-	blockReward := BlockReward
+	blockReward := new(big.Int).Set(BlockReward)
 	// fees-only after 42,000,000
-	// since uncles have a reward too, we will have to adjust this number
+	// TODO: since uncles have a reward too, we will have to adjust this number
 	// luckily we have time before we hit anywhere near there
-	rewarding := header.Number.Cmp(params.MaxMoney) == -1
-	if !rewarding {
+	rewardingcheck := header.Number.Cmp(params.MaxMoney)
+	if rewardingcheck == 0 {
+		log.Info("Entering fees-only mode", "block", header.Number)
+		return
+	}
+	if rewardingcheck != -1 {
 		return
 	}
 	// Accumulate the rewards for the miner and any included uncles
@@ -516,17 +532,45 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		r.Sub(r, header.Number)
 		r.Mul(r, blockReward)
 		r.Div(r, big8)
+		log.Info("Uncle reward", "block", header.Number, "miner", uncle.Coinbase, "reward", weiToAqua(r), "uncle", uncle.Number)
 		state.AddBalance(uncle.Coinbase, r)
-		log.Trace("Uncle reward", "miner", uncle.Coinbase, "reward", weiToAqua(r))
 		r.Div(blockReward, big32)
-		log.Trace("Uncle reward", "miner", header.Coinbase, "reward", weiToAqua(r))
 		reward.Add(reward, r)
+		log.Trace("Uncle reward", "block", header.Number, "miner", header.Coinbase, "reward", weiToAqua(r), "total", weiToAqua(reward))
 	}
+	if reward.Cmp(normalUncleReward) > 0 {
+		logfn = log.Error // give it some attention
+	} else if reward.Cmp(BlockReward) > 0 {
+		logfn = log.Info // always show uncle rewards
+	}
+	logfn("Block reward", "block", header.Number, "miner", header.Coinbase, "reward", weiToAqua(reward), "hash", header.Hash().Hex(), "uncles", len(uncles))
 	state.AddBalance(header.Coinbase, reward)
-	now := time.Now().Unix()
-	blocktime := header.Time.Int64()
-	if int64(now)-blocktime < 1200 {
-		log.Warn("Block reward", "miner", header.Coinbase, "reward", weiToAqua(reward))
+}
+
+// used only for reporting rewards
+var normalUncleReward = getNormalUncleReward([]int64{400_000, 400_001}, 400_003)
+
+// used only for reoprting rewards
+func getNormalUncleReward(unclenumber []int64, headernumber int64) *big.Int {
+	logfn := log.Noop
+	hn := new(big.Int).SetInt64(headernumber)
+	blockReward := new(big.Int).Set(BlockReward)
+	reward := new(big.Int).Set(blockReward)
+	for _, uni := range unclenumber {
+		un := new(big.Int).SetInt64(uni)
+		r := new(big.Int)
+		r.Add(un, big8)
+		logfn("add un", "r", r)
+		r.Sub(r, hn)
+		logfn("sub hn", "r", r)
+		r.Mul(r, blockReward)
+		logfn("mul blockReward", "r", r)
+		r.Div(r, big8)
+		logfn("div 8", "r", r)
+		r.Div(blockReward, big32)
+		logfn("div 32", "r", r)
+		reward.Add(reward, r)
+		logfn("add r", "reward", reward, "r", r)
 	}
-	// log.Trace("Block reward", "miner", header.Coinbase, "reward", weiToAqua(reward))
+	return reward
 }
