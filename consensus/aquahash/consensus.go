@@ -494,6 +494,7 @@ func weiToAqua(wei *big.Int) string {
 }
 
 var alwaysLogRewards = sense.EnvBool("LOG_REWARDS")
+var neverLogRewards = !alwaysLogRewards && sense.EnvBoolDisabled("LOG_REWARDS")
 
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward consists of the static block reward and rewards for
@@ -532,15 +533,15 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 		r.Sub(r, header.Number)
 		r.Mul(r, blockReward)
 		r.Div(r, big8)
-		log.Info("Uncle reward", "block", header.Number, "miner", uncle.Coinbase, "reward", weiToAqua(r), "uncle", uncle.Number)
+		logfn("Uncle reward", "block", header.Number, "miner", uncle.Coinbase, "reward", weiToAqua(r), "uncle", uncle.Number)
 		state.AddBalance(uncle.Coinbase, r)
 		r.Div(blockReward, big32)
 		reward.Add(reward, r)
-		log.Trace("Uncle reward", "block", header.Number, "miner", header.Coinbase, "reward", weiToAqua(r), "total", weiToAqua(reward))
+		logfn("Uncle reward", "block", header.Number, "miner", header.Coinbase, "reward", weiToAqua(r), "total", weiToAqua(reward))
 	}
 	if reward.Cmp(normalUncleReward) > 0 {
 		logfn = log.Error // give it some attention
-	} else if reward.Cmp(BlockReward) > 0 {
+	} else if false && reward.Cmp(BlockReward) > 0 {
 		logfn = log.Info // always show uncle rewards
 	}
 	logfn("Block reward", "block", header.Number, "miner", header.Coinbase, "reward", weiToAqua(reward), "hash", header.Hash().Hex(), "uncles", len(uncles))
