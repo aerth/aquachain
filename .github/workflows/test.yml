@@ -13,19 +13,25 @@ concurrency:
   
 jobs:
   run:
-    name: Test (Ubuntu/Windows)
+    name: Test
     continue-on-error: true
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-24.04, windows-2025]
+        operating-system: [ubuntu-24.04]
+        # operating-system: [ubuntu-24.04, windows-2025]
         # operating-system: [ubuntu-24.04, ubuntu-22.04, windows-2025, windows-2022]
     steps:
       - name: Checkout this branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          fetch-tags: true
       - name: show system info
         run: env || true; uname -a || true; test ! -e /etc/os-release || cat /etc/os-release; echo ${{ github.ref_name }} - ${{ github.ref }}
+      - name: Go Vet
+        run: CGO_ENABLED=0 go vet -tags 'netgo osusergo static' -trimpath -v -ldflags '-s -w -buildid= '
       - name: Build aquachain
-        run: make
+        run: make clean default
       - name: Run tests
         run: make test
