@@ -10,8 +10,8 @@ make file ncdu tree shfmt protobuf-compiler jq
 ADD /contrib/scripts/install_devtools.sh /contrib/scripts/devtools.go.list /
 # copy a completion script (might need to be updated in the container depending on branch)
 ADD /contrib/completion_aquachain.bash /etc/bash_completion.d/aquachain
-# add additional go tools to install here
-RUN echo "github.com/rs/zerolog/cmd/prettylog@latest" >> /devtools.go.list
+# add additional go tools to install here (with a new line before)
+RUN (echo; echo "github.com/rs/zerolog/cmd/prettylog@latest") >> /devtools.go.list
 # install and cleanup
 RUN GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all && rm -rf /go/*
 RUN go clean -cache -modcache
