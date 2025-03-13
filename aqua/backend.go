@@ -516,6 +516,9 @@ func (s *Aquachain) Stop() error {
 	log.Info("Shutdown: Aquachain backend service stopping", "caller1", log.Caller(1), "caller2", log.Caller(2), "caller3", log.Caller(3))
 	defer func() {
 		if err := recover(); err != nil {
+			var stack [4096]byte
+			n := runtime.Stack(stack[:], false)
+			println(string(stack[:n]))
 			log.Error("Aquachain backend service stopped with panic", "err", err)
 			return
 		}

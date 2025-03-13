@@ -222,21 +222,32 @@ func (pm *ProtocolManager) Start(maxPeers int) {
 func (pm *ProtocolManager) Stop() {
 	log.Info("Stopping Aquachain protocol")
 
-	pm.txSub.Unsubscribe()         // quits txBroadcastLoop
-	pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+	if pm == nil {
+		return
+	}
+	if pm.txSub != nil {
+		pm.txSub.Unsubscribe() // quits txBroadcastLoop
+	}
+	if pm.minedBlockSub != nil {
+		pm.minedBlockSub.Unsubscribe() // quits blockBroadcastLoop
+	}
 
-	// Quit the sync loop.
-	// After this send has completed, no new peers will be accepted.
-	pm.noMorePeers <- struct{}{}
+	if pm.txCh != nil {
+		// Quit the sync loop.
+		// After this send has completed, no new peers will be accepted.
+		pm.noMorePeers <- struct{}{}
 
-	// Quit fetcher, txsyncLoop.
-	close(pm.quitSync)
+		// Quit fetcher, txsyncLoop.
+		close(pm.quitSync)
+	}
 
-	// Disconnect existing sessions.
-	// This also closes the gate for any new registrations on the peer set.
-	// sessions which are already established but not added to pm.peers yet
-	// will exit when they try to register.
-	pm.peers.Close()
+	if pm.peers != nil {
+		// Disconnect existing sessions.
+		// This also closes the gate for any new registrations on the peer set.
+		// sessions which are already established but not added to pm.peers yet
+		// will exit when they try to register.
+		pm.peers.Close()
+	}
 
 	// Wait for all peer handler goroutines and the loops to come down.
 	pm.wg.Wait()
