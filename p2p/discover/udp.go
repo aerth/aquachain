@@ -517,9 +517,14 @@ func (t *udp) loop() {
 					}
 				}
 			}
-			if !matched && p == nil {
+			switch {
+			case r.ptype == aquapingPacket:
+				// no log
+			case !matched && p == nil:
 				log.Warn("unexpected reply", "from", r.from, "type", PacketName(r.ptype))
-			} else if !matched && p.ptype != aquapingPacket && r.ptype != aquapingPacket {
+			case !matched && p.ptype == aquapingPacket:
+				// no log
+			case !matched:
 				log.Warn("unexpected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
 			}
 			r.matched <- matched
