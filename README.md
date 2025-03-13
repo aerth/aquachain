@@ -166,10 +166,10 @@ for (i = 0; i < x; i++){
 
 ## Shell Completion
 
-To enable shell completion, run `aquachain completion bash` and redirect the output to a file in your shell's completion directory.
+To enable shell completion, run `aquachain generate-shell-completion bash` and redirect the output to a file in your shell's completion directory.
 
-systemwide:
-`aquachain completion bash > /etc/bash_completion.d/aquachain`
+systemwide (this requires sudo):
+`aquachain generate-shell-completion bash | sudo tee /etc/bash_completion.d/aquachain 1>/dev/null && echo now re-source .bashrc`
 
 user-only:
 ```
