@@ -1662,8 +1662,8 @@ func TestDeliverHeadersHang(t *testing.T) {
 		protocol int
 		syncMode SyncMode
 	}{
-		//{65, FullSync},
-		//{65, FastSync},
+		{65, FullSync},
+		{65, FastSync},
 		{64, FullSync},
 		{64, FastSync},
 	}

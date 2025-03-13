@@ -66,6 +66,37 @@ const (
 	ReceiptsMsg    = 0x10
 )
 
+func MsgTypeString(pt int) string {
+	switch pt {
+	case StatusMsg:
+		return "StatusMsg"
+	case NewBlockHashesMsg:
+		return "NewBlockHashesMsg"
+	case TxMsg:
+		return "TxMsg"
+	case GetBlockHeadersMsg:
+		return "GetBlockHeadersMsg"
+	case BlockHeadersMsg:
+		return "BlockHeadersMsg"
+	case GetBlockBodiesMsg:
+		return "GetBlockBodiesMsg"
+	case BlockBodiesMsg:
+		return "BlockBodiesMsg"
+	case NewBlockMsg:
+		return "NewBlockMsg"
+	case GetNodeDataMsg:
+		return "GetNodeDataMsg"
+	case NodeDataMsg:
+		return "NodeDataMsg"
+	case GetReceiptsMsg:
+		return "GetReceiptsMsg"
+	case ReceiptsMsg:
+		return "ReceiptsMsg"
+	default:
+		return "UnknownMsg " + fmt.Sprintf("%d", pt)
+	}
+}
+
 type errCode int
 
 const (

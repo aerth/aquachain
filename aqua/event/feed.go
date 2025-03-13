@@ -20,6 +20,8 @@ import (
 	"errors"
 	"reflect"
 	"sync"
+
+	"gitlab.com/aquachain/aquachain/common/log"
 )
 
 var errBadChannel = errors.New("event: Subscribe argument does not have sendable channel type")
@@ -149,12 +151,17 @@ func (f *Feed) Send(value interface{}) (nsent int) {
 
 	// Send until all channels except removeSub have been chosen.
 	cases := f.sendCases
+	if len(cases) == 0 {
+		panic("event: Send on feed with no subscribers")
+	}
 	for {
+		log.Trace("sending event to channel", "val", value, "value", rvalue, "cases", len(cases), "chan", cases[0].Chan.String(), "caller2", log.Caller(2))
 		// Fast path: try sending without blocking before adding to the select set.
 		// This should usually succeed if subscribers are fast enough and have free
 		// buffer space.
 		for i := firstSubSendCase; i < len(cases); i++ {
 			if cases[i].Chan.TrySend(rvalue) {
+				log.Trace("sent to", "channel", cases[i].Chan.Interface(), "value", rvalue, "nsent", nsent, "cases", cases, "i", i)
 				nsent++
 				cases = cases.deactivate(i)
 				i--
