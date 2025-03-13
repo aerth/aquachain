@@ -2,8 +2,7 @@
 # the actual go command
 GOCMD ?= $(shell which go)
 ifeq (x,x$(GOCMD))
-$(error "go command not found in PATH")
-exit 1
+$(warning "go command not found in PATH")
 endif
 
 PWD != pwd
