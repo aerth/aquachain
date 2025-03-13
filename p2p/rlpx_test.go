@@ -285,7 +285,10 @@ func TestProtocolHandshakeErrors(t *testing.T) {
 		p1, p2 := MsgPipe()
 		go Send(p1, test.code, test.msg)
 		_, err := readProtocolHandshake(p2, our)
-		if !reflect.DeepEqual(err, test.err) {
+		if (err == nil) != (test.err == nil) {
+			t.Errorf("test %d: error mismatch: got %q, want %q", i, err, test.err)
+		}
+		if err != nil && err.Error() != test.err.Error() {
 			t.Errorf("test %d: error mismatch: got %q, want %q", i, err, test.err)
 		}
 	}
