@@ -277,7 +277,7 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 		panic("nil header")
 	}
 	if header.Number == nil {
-		log.Warn("NewBlock with nil header.Number")
+		log.Warn("NewBlock with nil header.Number", "caller1", log.Caller(1), "caller2", log.Caller(2))
 	} else if header.Number.Sign() < 0 {
 		panic("negative header.Number")
 	}
