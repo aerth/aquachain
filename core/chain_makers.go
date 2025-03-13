@@ -162,6 +162,10 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 	if config == nil {
 		config = params.TestChainConfig
 	}
+	name := config.Name()
+	if name == "" || name == "unknown" {
+		panic("config must be registered in params.AddChainConfig")
+	}
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	blockchain, _ := NewBlockChain(ctx, db, nil, config, engine, vm.Config{})
 	defer blockchain.Stop()
