@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/math"
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/params"
@@ -147,3 +148,63 @@ func TestCalcDifficulty(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalUncleReward2(t *testing.T) {
+	x := new(big.Int).Set(normalUncleReward)
+	log.Debug("normalUncleReward", "x", x)
+	if x.String() != "1062500000000000000" {
+		t.Errorf("normalUncleReward is not 1.0625 coin, got %s", x.String())
+		return
+	}
+	if x.Cmp(maxRewardShould2) != 0 {
+		t.Errorf("normalUncleReward is not %s, got %s", maxRewardShould2.String(), x.String())
+		return
+	}
+	log.Warn("normalUncleReward", "x", x)
+	tcs := []struct {
+		hn  int64
+		una []int64
+	}{
+		{100_000, []int64{100_002}},
+		{100_000, []int64{100_003}},
+		{100_000, []int64{100_004}},
+		{100_000, []int64{100_005}},
+		{100_006, []int64{100_000}},
+		{100_007, []int64{100_000}},
+		{100_008, []int64{100_000}},
+		{100_000, []int64{100_002, 100_003}},
+		{100_000, []int64{100_003, 100_004}},
+		{100_000, []int64{100_004, 100_005}},
+		{100_000, []int64{100_005, 100_006}},
+		{100_006, []int64{100_000, 100_001}},
+		{100_007, []int64{100_000, 100_001}},
+		{100_008, []int64{100_000, 100_001}},
+		{100_000, []int64{100_002, 100_003, 100_004}},
+		{100_000, []int64{100_003, 100_004, 100_005}},
+		{100_000, []int64{100_004, 100_005, 100_006}},
+		{100_000, []int64{100_005, 100_006, 100_007}},
+		{100_006, []int64{100_000, 100_001, 100_002, 100_003, 100_004, 100_005}},
+	}
+
+	for _, tc := range tcs {
+		got := getNormalUncleReward(tc.una, tc.hn)
+		log.Debug("normalUncleReward", "got", got, "hn", tc.hn, "unas", tc.una)
+		if len(tc.una) == 1 && got.Cmp(maxRewardShould1) != 0 {
+			t.Error("got", got, "hn", tc.hn, "unas", len(tc.una))
+			continue
+		}
+		if len(tc.una) == 2 && got.Cmp(maxRewardShould2) > 0 {
+			t.Error("got", got, "hn", tc.hn, "unas", len(tc.una))
+			continue
+		}
+		// test preview algorithm is correct if there are (somehow) more uncles than maxUncles
+		if len(tc.una) > maxUncles && got.Cmp(maxRewardShould2) < 0 {
+			t.Error("got", got, "hn", tc.hn, "unas", len(tc.una))
+			continue
+		}
+	}
+}
+
+var maxRewardShould1 = new(big.Int).SetUint64(1_031_250_000_000_000_000) // if maxUncles=1
+
+var maxRewardShould2 = new(big.Int).SetUint64(1_062_500_000_000_000_000) // maxUncles=2
