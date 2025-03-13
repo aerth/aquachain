@@ -17,6 +17,7 @@
 package console
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ import (
 	"gitlab.com/aquachain/aquachain/opt/console/jsruntime"
 	"gitlab.com/aquachain/aquachain/rpc"
 	rpcclient "gitlab.com/aquachain/aquachain/rpc/rpcclient"
+	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
 // bridge is a collection of JavaScript utility methods to bride the .js runtime
@@ -170,8 +172,13 @@ func (b *bridge) Sleep(call jsruntime.FunctionCall) (response jsruntime.Value) {
 	if call.Argument(0).IsNumber() {
 		sleep, err := call.Argument(0).ToFloat()
 		if err == nil {
-			time.Sleep(time.Duration(sleep * float64(time.Second)))
-			return jsruntime.TrueValue()
+			select {
+			case <-time.After(time.Duration(sleep * float64(time.Second))):
+				return jsruntime.TrueValue()
+			case <-mainctxs.Main().Done():
+				// throw below
+				return throwJSException(log.TranslateFatalError(context.Cause(mainctxs.Main())).Error())
+			}
 		}
 	}
 	return throwJSException("usage: sleep(<number of seconds>)")
@@ -219,12 +226,16 @@ func (b *bridge) SleepBlocks(call jsruntime.FunctionCall) (response jsruntime.Va
 	// Poll the current block number until either it ot a timeout is reached
 	targetBlockNr := blockNumber() + blocks
 	deadline := time.Now().Add(time.Duration(sleep) * time.Second)
-
+	mainctx := mainctxs.Main()
 	for time.Now().Before(deadline) {
 		if blockNumber() >= targetBlockNr {
 			return jsruntime.TrueValue()
 		}
-		time.Sleep(time.Second)
+		select {
+		case <-time.After(1 * time.Second):
+		case <-mainctx.Done(): // TODO, somehow trap the signal instead of shutdown
+			return throwJSException(log.TranslateFatalError(context.Cause(mainctx)).Error())
+		}
 	}
 	return jsruntime.FalseValue()
 }
