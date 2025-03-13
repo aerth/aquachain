@@ -6,10 +6,12 @@ FROM mcr.microsoft.com/devcontainers/go:dev-1-bookworm
 RUN apt update && apt install -y \
 make file ncdu tree shfmt protobuf-compiler jq
 
-# copy tool installer
-ADD /.devcontainer/bin/install_devtools.sh /.devcontainer/bin/devtools.go.list /
-# add additional tools to install
-RUN echo "github.com/rs/zerolog/cmd/zerolog@latest" >> /devtools.go.list
+# copy tool installer (and list of packages)
+ADD /contrib/scripts/install_devtools.sh /contrib/scripts/devtools.go.list /
+# copy a completion script (might need to be updated in the container depending on branch)
+ADD /contrib/completion_aquachain.bash /etc/bash_completion.d/aquachain
+# add additional go tools to install here
+RUN echo "github.com/rs/zerolog/cmd/prettylog@latest" >> /devtools.go.list
 # install and cleanup
 RUN GOCACHE=off PREFIX=/usr/local GOBIN=/usr/local/bin/ /install_devtools.sh all && rm -rf /go/*
 RUN go clean -cache -modcache
