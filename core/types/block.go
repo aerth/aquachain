@@ -277,9 +277,8 @@ func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*
 		panic("nil header")
 	}
 	if header.Number == nil {
-		panic("nil header.Number")
-	}
-	if header.Number.Sign() < 0 {
+		log.Warn("NewBlock with nil header.Number")
+	} else if header.Number.Sign() < 0 {
 		panic("negative header.Number")
 	}
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
