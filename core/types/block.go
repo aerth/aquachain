@@ -273,6 +273,15 @@ type storageblock struct {
 // are ignored and set to values derived from the given txs, uncles
 // and receipts.
 func NewBlock(header *Header, txs []*Transaction, uncles []*Header, receipts []*Receipt) *Block {
+	if header == nil {
+		panic("nil header")
+	}
+	if header.Number == nil {
+		panic("nil header.Number")
+	}
+	if header.Number.Sign() < 0 {
+		panic("negative header.Number")
+	}
 	b := &Block{header: CopyHeader(header), td: new(big.Int)}
 
 	// TODO: panic if len(txs) != len(receipts)
@@ -455,6 +464,17 @@ func (c *writeCounter) Write(b []byte) (int, error) {
 }
 
 func CalcUncleHash(uncles []*Header) common.Hash {
+	for _, v := range uncles {
+		if v == nil || v.Number == nil {
+			panic("nil uncle")
+		}
+		if v.Number.Sign() == 0 {
+			panic("zero uncle")
+		}
+		if v.Number.Sign() < 0 {
+			panic("negative uncle")
+		}
+	}
 	return rlpHash(1, uncles)
 }
 
