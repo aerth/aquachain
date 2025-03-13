@@ -493,7 +493,9 @@ func (t *udp) loop() {
 		case r := <-t.gotreply:
 			var matched bool
 			var p *pending
-			log.Info("got a discovery reply", "from", r.from, "type", PacketName(r.ptype), "numPending", plist.Len())
+			if debugpacket {
+				log.Info("got a discovery reply", "from", r.from, "type", PacketName(r.ptype), "numPending", plist.Len())
+			}
 
 			// search for a matching pending
 			for el := plist.Front(); el != nil; el = el.Next() {
@@ -510,12 +512,14 @@ func (t *udp) loop() {
 					}
 					// Reset the continuous timeout counter (time drift detection)
 					contTimeouts = 0
-					log.Info("  expected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
+					if debugpacket {
+						log.Info("  expected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
+					}
 				}
 			}
 			if !matched && p == nil {
 				log.Warn("unexpected reply", "from", r.from, "type", PacketName(r.ptype))
-			} else if !matched {
+			} else if !matched && p.ptype != aquapingPacket && r.ptype != aquapingPacket {
 				log.Warn("unexpected reply", "from", r.from, "expectedFrom", p.from, "type", PacketName(p.ptype), "expected", PacketName(r.ptype))
 			}
 			r.matched <- matched
