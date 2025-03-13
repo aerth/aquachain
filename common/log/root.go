@@ -97,18 +97,15 @@ func DebugSlow(msg string, ctx ...any) {
 	m, _ := slowmap.Load().(map[string]time.Time)
 	got, ok := m[caller]
 	timesince := time.Since(got)
-	if timesince < 0 {
-		return
-	}
-	if timesince < oktime/2 {
+	if ok && timesince < 0 {
 		return
 	}
 	if !ok || timesince > oktime {
-		Root().write(msg, LvlDebug, append(ctx, "caller", caller))
-		m[caller] = time.Now()
+		Root().write(msg, LvlDebug, append(ctx, "slowcaller", caller))
+		m[caller] = time.Now() // ok = true
+		slowmap.Store(m)
+		Root().write(msg, LvlDebug, ctx)
 	}
-	slowmap.Store(m)
-	Root().write(msg, LvlDebug, ctx)
 }
 
 // Info is a convenient alias for Root().Info
@@ -119,6 +116,10 @@ func Info(msg string, ctx ...interface{}) {
 // Warn is a convenient alias for Root().Warn
 func Warn(msg string, ctx ...interface{}) {
 	Root().write(msg, LvlWarn, ctx)
+}
+
+func Noop(msg string, ctx ...interface{}) {
+	// cool
 }
 
 // Error is a convenient alias for Root().Error
