@@ -129,11 +129,12 @@ var consoledefault = &cli.Command{
 		if x.Root() == nil {
 			return fmt.Errorf("woops")
 		}
-		args := os.Args[1:]
+		args := append([]string{"console"}, os.Args[1:]...) // prepend 'console' subcommand for cli parse
 		args2 := cmd.Args().Slice()
-		log.Info("running consoledefault", "args", args, "args2", args2)
+		log.Info("running consoledefault", "args", args, "args2", args2, "osargs", os.Args)
 		return x.Run(ctx, args) // no subcommand given so we know all the args are flags :)
 	},
+	Flags: subcommands.SubcommandByName("console").Flags,
 }
 
 // afterFunc only for this main package
@@ -148,7 +149,7 @@ func afterFunc(context.Context, *cli.Command) error {
 var mainsubcommand = ""
 
 func isNodeFunc(subcmd string) bool {
-	return subcmd == "" || subcmd == "daemon" || subcmd == "console"
+	return subcmd == "" || subcmd == "daemon" || subcmd == "console" || subcmd == "consoledefault"
 }
 
 // beforeFunc only for this main package
@@ -165,11 +166,14 @@ func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 	}
 	// if we are not running a node command, we dont need to do anything more here
 	if !isNodeFunc(mainsubcommand) {
+		log.Debug("not a node-starting subcommand", "subcommand", mainsubcommand)
 		return ctx, nil
 	}
+	log.Debug("we are starting a node, checking runtime environment")
 	if err := checkRuntimeEnvironment(); err != nil {
-		fmt.Fprintf(os.Stderr, "fatal: %+v\n", err)
-		os.Exit(1)
+		log.Crit("runtime environment check failed: "+err.Error(), "subcommand", mainsubcommand)
+		time.Sleep(time.Second / 2)
+		return ctx, err
 	}
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	if err := debug.Setup(ctx, cmd); err != nil {
