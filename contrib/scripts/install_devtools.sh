@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-set -x # for testing
+# set -x # for testing
 this_script_dir=$(dirname $(realpath $0))
 PREFIX=${PREFIX:-${HOME}/.local}
 echo "Installing to prefix: $PREFIX -> $PREFIX/bin"
@@ -18,10 +18,15 @@ solidity_url=https://github.com/ethereum/solidity/releases/download/${SOLIDITY_V
 install_go_tools() {
     echo "Installing go tools"
     GOCMD=${GOCMD:-go}
+    set +e
     echo "Using GOCMD=${GOCMD}"
     listpath=${1-${this_script_dir}/devtools.go.list}
     packages=$(cat ${listpath})
     for pkg in $packages; do
+        # pkg is like golang.org/x/tools/cmd/stringer@latest, get basename
+        pkgn=$(basename $pkg)
+        pkgn=${pkgn%@*} # remove @latest etc
+        type $pkgn 2>/dev/null && echo "....$pkgn already installed" && continue
         echo "Installing go tool $pkg to ${PREFIX}/bin"
         GOCACHE= GOBIN=${PREFIX}/bin go install -v $pkg || exit 1
     done
