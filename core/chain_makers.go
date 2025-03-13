@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"gitlab.com/aquachain/aquachain/aquadb"
 	"gitlab.com/aquachain/aquachain/common"
+	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/consensus"
 	"gitlab.com/aquachain/aquachain/consensus/misc"
 	"gitlab.com/aquachain/aquachain/core/state"
@@ -164,7 +166,10 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 	}
 	name := config.Name()
 	if name == "" || name == "unknown" {
-		panic("config must be registered in params.AddChainConfig")
+		caller := log.Caller(1).String()
+		log.Warn("config must be registered in params.AddChainConfig"+fmt.Sprintf("chainId: %s", config.ChainId), "caller", caller)
+		caller = strings.Split(caller, ":")[0]
+		params.AddChainConfig(caller, config)
 	}
 	blocks, receipts := make(types.Blocks, n), make([]types.Receipts, n)
 	blockchain, _ := NewBlockChain(ctx, db, nil, config, engine, vm.Config{})
