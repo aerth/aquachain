@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"gitlab.com/aquachain/aquachain/common/sense"
 )
@@ -11,6 +12,12 @@ import (
 var NoSync = !sense.EnvBoolDisabled("NO_LOGSYNC")
 
 var PrintfDefaultLevel = LvlInfo
+
+var bootTime = time.Now() // TODO dedupe
+
+func TimeSinceBoot() time.Duration {
+	return time.Since(bootTime)
+}
 
 func (l *logger) Printf(msg string, stuff ...any) {
 	msg = fmt.Sprintf(msg, stuff...)

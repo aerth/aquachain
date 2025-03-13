@@ -366,10 +366,9 @@ func DefaultGenesisByName(name string) *Genesis {
 
 }
 
-var bootTime = time.Now() // TODO dedupe
 // DefaultGenesisBlock returns the Aquachain main net genesis block.
 func NewDefaultGenesisBlock() *Genesis {
-	if time.Since(bootTime) > time.Second { // this should be called once
+	if log.TimeSinceBoot() > time.Second { // TODO: this should be called once
 		log.Warn("Using default genesis block", "caller", log.Caller(1))
 	}
 	return &Genesis{
