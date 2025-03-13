@@ -1,7 +1,5 @@
 // console.startup.js
 // this file is embedded and executed on boot
-// it might look like web.version.node exists but its a getter
-// lets call getinfo once and format the output
 
 // friendly name for algo
 function algoname(version) {
@@ -15,6 +13,8 @@ function algoname(version) {
 }
 
 // fetch the info from the node
+// it might look like web.version.node exists but its a getter
+// lets call getinfo once and format the output
 function getinfo() {
     try {
         var instance = web3.version.node; // request
@@ -89,12 +89,22 @@ if (true) {
 }
 
 function myPeers() {
+    var peers = [];
     try {
         var x = admin.peers;
+        if (x.length === 0 || x[0] === undefined) {
+            console.log("no peers?");
+            return peers;
+        }
         for (i = 0; i < 5; i++) {
-            console.log("enode://" + x[i].id + "@" + x[i].network.remoteAddress)
+            if (x[i] === undefined) {
+                continue;
+            }
+            // console.log("enode://" + x[i].id + "@" + x[i].network.remoteAddress)
+            peers.push("enode://" + x[i].id + "@" + x[i].network.remoteAddress);
         }
     } catch (e) {
-        console.log("error fetching peer data, maybe not permitted? " + e);
+        console.error("error getting peers: " + e);
     }
+    return peers;
 }
