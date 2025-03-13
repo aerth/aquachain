@@ -168,9 +168,11 @@ func (b *bridge) Sign(call jsruntime.FunctionCall) (response jsruntime.Value) {
 // Sleep will block the console for the specified number of seconds.
 func (b *bridge) Sleep(call jsruntime.FunctionCall) (response jsruntime.Value) {
 	if call.Argument(0).IsNumber() {
-		sleep, _ := call.Argument(0).ToInteger()
-		time.Sleep(time.Duration(sleep) * time.Second)
-		return jsruntime.TrueValue()
+		sleep, err := call.Argument(0).ToFloat()
+		if err == nil {
+			time.Sleep(time.Duration(sleep * float64(time.Second)))
+			return jsruntime.TrueValue()
+		}
 	}
 	return throwJSException("usage: sleep(<number of seconds>)")
 }
