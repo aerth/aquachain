@@ -17,6 +17,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-tags: true
+          fetch-depth: 0
       - name: Build docs
         run: sudo apt update && sudo apt install -y mkdocs && make docs # to ./docs dir
       - name: Deploy docs

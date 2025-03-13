@@ -11,7 +11,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
-          fetch-tags: true
       - name: grepping for bad funcs
         run: |
           .github/grepcheck "os.LookupEnv" "sense.LookupEnv" 1;

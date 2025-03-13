@@ -25,6 +25,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
           fetch-tags: true
+          fetch-depth: 0
       - name: show system info
         run: env || true; uname -a || true; test ! -e /etc/os-release || cat /etc/os-release; echo ${{ github.ref_name }} - ${{ github.ref }}
       - name: Build aquachain
