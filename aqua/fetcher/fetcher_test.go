@@ -65,7 +65,7 @@ func makeChain(n int, seed byte, parent *types.Block) ([]common.Hash, map[common
 			block.AddTx(tx)
 		}
 		// If the block number is a multiple of 5, add a bonus uncle to the block
-		if i%5 == 0 {
+		if i > 0 && i%5 == 0 {
 			block.AddUncle(&types.Header{ParentHash: block.PrevBlock(i - 1).Hash(), Number: big.NewInt(int64(i - 1))})
 		}
 	})
