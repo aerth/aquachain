@@ -23,6 +23,7 @@ import (
 	"gitlab.com/aquachain/aquachain/aquadb"
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
+	"gitlab.com/aquachain/aquachain/common/sense"
 )
 
 // secureKeyPrefix is the database key prefix used to store trie node preimages.
@@ -307,7 +308,7 @@ func TestMode() {
 	logNonpending = false
 }
 
-var logNonpending = true
+var logNonpending = sense.EnvBool("DEBUG_TRIE")
 
 // commit is the private locked version of Commit.
 func (db *Database) commit(hash common.Hash, batch aquadb.Batch) error {
