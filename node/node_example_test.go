@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/big"
 
 	"gitlab.com/aquachain/aquachain/node"
 	"gitlab.com/aquachain/aquachain/p2p"
+	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/rpc"
 )
 
@@ -45,7 +47,17 @@ func ExampleService() {
 	// Create a network node to run protocols with the default values. A unique chain id
 	// is required for side chains
 	ctx, closemain := context.WithCancelCause(context.Background())
-	minimalConfig := &node.Config{P2P: &p2p.Config{ChainId: 12345}, Name: "test", RPCAllowIP: []string{"127.0.0.1"}, Context: ctx, CloseMain: closemain}
+	defer closemain(fmt.Errorf("finished"))
+	// register the chain config, needed to name the chain config
+	params.AddChainConfig("coolchain", &params.ChainConfig{ChainId: big.NewInt(12345)})
+
+	// minimal config has chain id, 'allowip', and ctx and a node name
+	minimalConfig := &node.Config{
+		P2P:        &p2p.Config{ChainId: 12345},
+		Name:       "ExampleService",
+		RPCAllowIP: []string{"127.0.0.1/24"},
+		Context:    ctx,
+	}
 	stack, err := node.New(minimalConfig)
 
 	if err != nil {

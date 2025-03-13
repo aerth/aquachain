@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"math/big"
 	"net"
 	"os"
 	"path/filepath"
@@ -95,10 +94,8 @@ func New(conf *Config) (*Node, error) {
 	}
 	chaincfg := conf.P2P.ChainConfig()
 	if chaincfg == nil {
-		chaincfg = params.GetChainConfigByChainId(big.NewInt(int64(conf.P2P.ChainId)))
-	}
-	if chaincfg == nil {
-		log.Warn("node: no chain config for chainID", "chainID", conf.P2P.ChainId)
+		log.Error("node: no chain config for chainID", "chainID", conf.P2P.ChainId, "caller1", log.Caller(1), "caller2", log.Caller(2))
+		return nil, errors.New("node.Config.P2P.ChainConfig not set")
 	}
 	if conf.Name == "" {
 		return nil, errors.New("node.Config.Name not set")

@@ -114,7 +114,6 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 	// Create a networkless protocol stack and start an Aquachain service within
 	stack, err := node.New(&node.Config{
 		Context:           ctx,
-		CloseMain:         func(err error) { panic(err.Error()) },
 		DataDir:           workspace,
 		UseLightweightKDF: true,
 		Name:              t.Name(),
