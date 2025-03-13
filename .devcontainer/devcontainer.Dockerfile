@@ -4,7 +4,7 @@
 # TODO: bump base image, find more go containers at https://mcr.microsoft.com/en-us/artifact/mar/devcontainers/go/tags
 FROM mcr.microsoft.com/devcontainers/go:dev-1-bookworm
 RUN apt update && apt install -y \
-make file ncdu tree shfmt protobuf-compiler jq
+make file ncdu tree shfmt protobuf-compiler jq bash-completion
 
 # copy tool installer (and list of packages)
 ADD /contrib/scripts/install_devtools.sh /contrib/scripts/devtools.go.list /
