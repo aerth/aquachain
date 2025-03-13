@@ -32,6 +32,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/metrics"
+	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/core"
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/params"
@@ -88,6 +89,7 @@ var (
 	errNoSyncActive            = errors.New("no sync active")
 	errTooOld                  = errors.New("peer doesn't speak recent enough protocol version (need version >= 62)")
 )
+var debugSync = sense.EnvBool("DEBUG_SYNC")
 
 type Downloader struct {
 	ctx  context.Context
@@ -1071,7 +1073,9 @@ func (d *Downloader) fetchParts(errCancel error, deliveryCh chan dataPack, deliv
 				case err == nil && packet.Items() == 0:
 					peer.log.Trace("Requested data not delivered", "type", kind)
 				case err == nil:
-					peer.log.Trace("Delivered new batch of data", "type", kind, "count", packet.Stats())
+					if debugSync {
+						peer.log.Trace("Delivered new batch of data", "type", kind, "count", packet.Stats())
+					}
 				default:
 					peer.log.Trace("Failed to deliver retrieved data", "type", kind, "err", err)
 				}
