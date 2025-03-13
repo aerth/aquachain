@@ -650,8 +650,6 @@ func (n *Node) Stop() error {
 	if n.server == nil {
 		return ErrNodeStopped
 	}
-	log.GracefulShutdown(fmt.Errorf("node is stopping"))
-
 	// Terminate the API, services and the p2p server.
 	n.stopWS()
 	n.stopHTTP()
