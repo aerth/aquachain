@@ -107,10 +107,13 @@ func TestBodyStorage(t *testing.T) {
 	db := aquadb.NewMemDatabase()
 
 	// Create a test body to move around the database and make sure it's really new
-	body := &types.Body{Uncles: []*types.Header{{Extra: []byte("test header")}}}
+	body := &types.Body{Uncles: []*types.Header{{Number: big.NewInt(3), Extra: []byte("test header")}}}
 
 	hasher := sha3.NewKeccak256()
-	rlp.Encode(hasher, body)
+	err := rlp.Encode(hasher, body)
+	if err != nil {
+		t.Fatalf("Failed to rlp encode dummy-block body: %v", err)
+	}
 	hash := common.BytesToHash(hasher.Sum(nil))
 
 	if entry := GetBodyNoVersion(db, hash, 0); entry != nil {
