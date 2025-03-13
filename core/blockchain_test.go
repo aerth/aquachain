@@ -1073,6 +1073,7 @@ func TestCanonicalBlockRetrieval(t *testing.T) {
 }
 
 func TestEIP155Transition(t *testing.T) {
+
 	// Configure and generate a sample block chain
 	var (
 		db         = aquadb.NewMemDatabase()
@@ -1086,6 +1087,7 @@ func TestEIP155Transition(t *testing.T) {
 		}
 		genesis = gspec.MustCommit(db)
 	)
+	params.AddChainConfig("TestEIP155Block", gspec.Config)
 
 	blockchain, _ := NewBlockChain(context.TODO(), db, nil, gspec.Config, aquahash.NewFaker(), vm.Config{})
 	defer blockchain.Stop()
@@ -1155,6 +1157,7 @@ func TestEIP155Transition(t *testing.T) {
 
 	// generate an invalid chain id transaction
 	config := &params.ChainConfig{ChainId: big.NewInt(2), EIP155Block: big.NewInt(2), HomesteadBlock: new(big.Int)}
+	params.AddChainConfig("TestEIP155BlockBad", config)
 	blocks, _ = GenerateChain(context.TODO(), config, blocks[len(blocks)-1], aquahash.NewFaker(), db, 4, func(i int, block *BlockGen) {
 		var (
 			tx      *types.Transaction
