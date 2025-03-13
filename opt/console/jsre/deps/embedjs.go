@@ -17,13 +17,16 @@
 // deps package embeds the js files needed for opt/console package jsre
 package deps
 
-import "embed"
+import (
+	"embed"
+	"path/filepath"
+)
 
 //go:embed *.js
 var embedded embed.FS
 
 func MustAsset(name string) []byte {
-	data, err := embedded.ReadFile(name)
+	data, err := embedded.ReadFile(filepath.Base(name)) // :)
 	if err != nil {
 		panic("embed.FS lookup " + name + ": " + err.Error())
 	}
