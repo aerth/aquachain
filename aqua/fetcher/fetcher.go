@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the aquachain library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package fetcher contains the block announcement based synchronisation.
+// Package fetcher contains the block announcement based synchronization.
 package fetcher
 
 import (
@@ -27,6 +27,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/prque"
+	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/consensus"
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/params"
@@ -253,11 +254,16 @@ func (f *Fetcher) FilterHeaders(peer string, headers []*types.Header, time time.
 	}
 }
 
+var debugSync = sense.EnvBool("DEBUG_SYNC")
+
 // FilterBodies extracts all the block bodies that were explicitly requested by
 // the fetcher, returning those that should be handled differently.
 func (f *Fetcher) FilterBodies(peer string, transactions [][]*types.Transaction, uncles [][]*types.Header, time time.Time) ([][]*types.Transaction, [][]*types.Header) {
-	log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
-	defer log.Trace("Done filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
+	if debugSync {
+		log.Trace("Filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
+
+		defer log.Trace("Done filtering bodies", "peer", peer, "txs", len(transactions), "uncles", len(uncles))
+	}
 
 	// Send the filter channel to the fetcher
 	filter := make(chan *bodyFilterTask)
@@ -464,7 +470,7 @@ func (f *Fetcher) loop() {
 				header.SetVersion(byte(f.hashFunc(header.Number)))
 				hash := header.Hash()
 
-				// Filter fetcher-requested headers from other synchronisation algorithms
+				// Filter fetcher-requested headers from other synchronization algorithms
 				if announce := f.fetching[hash]; announce != nil && announce.origin == task.peer && f.fetched[hash] == nil && f.completing[hash] == nil && f.queued[hash] == nil {
 					// If the delivered header does not match the promised number, drop the announcer
 					if header.Number.Uint64() != announce.number {

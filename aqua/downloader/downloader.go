@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the aquachain library. If not, see <http://www.gnu.org/licenses/>.
 
-// Package downloader contains the manual full chain synchronisation.
+// Package downloader contains the manual full chain synchronization.
 package downloader
 
 import (
@@ -93,7 +93,7 @@ var debugSync = sense.EnvBool("DEBUG_SYNC")
 
 type Downloader struct {
 	ctx  context.Context
-	mode SyncMode       // Synchronisation mode defining the strategy used (per sync cycle)
+	mode SyncMode       // synchronization mode defining the strategy used (per sync cycle)
 	mux  *event.TypeMux // Event multiplexer to announce sync operation events
 
 	queue   *queue   // Scheduler for selecting the hashes to download
@@ -245,11 +245,11 @@ func New(mode SyncMode, stateDb aquadb.Database, mux *event.TypeMux, chain Block
 	return dl
 }
 
-// Progress retrieves the synchronisation boundaries, specifically the origin
-// block where synchronisation started at (may have failed/suspended); the block
+// Progress retrieves the synchronization boundaries, specifically the origin
+// block where synchronization started at (may have failed/suspended); the block
 // or header sync is currently at; and the latest known block which the sync targets.
 //
-// In addition, during the state download phase of fast synchronisation the number
+// In addition, during the state download phase of fast synchronization the number
 // of processed and the total number of known states are also returned. Otherwise
 // these are zero.
 func (d *Downloader) Progress() aquachain.SyncProgress {
@@ -335,7 +335,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 	case ErrBusy:
 		return err
 	case errBadPeer:
-		log.Debug("Synchronisation failed, dropping peer", "peer", id, "err", err)
+		log.Debug("synchronization failed, dropping peer", "peer", id, "err", err)
 		if d.dropPeer == nil {
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
 			// Timeouts can occur if e.g. compaction hits at the wrong time, and can be ignored
@@ -347,7 +347,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 		errEmptyHeaderSet, errPeersUnavailable, errTooOld,
 		errInvalidAncestor, errInvalidChain:
 		if d.ctx.Err() == nil {
-			log.Warn("Synchronisation failed, dropping peer", "peer", id, "err", err)
+			log.Warn("synchronization failed, dropping peer", "peer", id, "err", err)
 		}
 		if d.dropPeer == nil {
 			// The dropPeer method is nil when `--copydb` is used for a local copy.
@@ -357,7 +357,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 			d.dropPeer(id)
 		}
 	default:
-		log.Warn("Synchronisation failed, retrying", "err", err)
+		log.Warn("synchronization failed, retrying", "err", err)
 	}
 	return err
 }
@@ -366,7 +366,7 @@ func (d *Downloader) Synchronise(id string, head common.Hash, td *big.Int, mode 
 // it will use the best peer possible and synchronize if its TD is higher than our own. If any of the
 // checks fail an error will be returned. This method is synchronous
 func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode SyncMode) error {
-	// Mock out the synchronisation if testing
+	// Mock out the synchronization if testing
 	if d.synchroniseMock != nil {
 		return d.synchroniseMock(id, hash)
 	}
@@ -378,7 +378,7 @@ func (d *Downloader) synchronise(id string, hash common.Hash, td *big.Int, mode 
 
 	// Post a user notification of the sync (only once per session)
 	if atomic.CompareAndSwapInt32(&d.notified, 0, 1) {
-		log.Info("Block synchronisation started")
+		log.Info("Block synchronization started")
 	}
 	// Reset the queue, peer set and wake channels to clean any internal leftover state
 	d.queue.Reset()
@@ -443,7 +443,7 @@ func (d *Downloader) syncWithPeer(p *peerConnection, hash common.Hash, td *big.I
 
 	log.Debug("Synchronising with the network", "peer", p.id, "aqua", p.version, "head", hash, "td", td, "mode", d.mode)
 	defer func(start time.Time) {
-		log.Debug("Synchronisation terminated", "elapsed", time.Since(start))
+		log.Debug("synchronization terminated", "elapsed", time.Since(start))
 	}(time.Now())
 
 	// Look up the sync boundaries: the common ancestor and the target block
@@ -565,7 +565,7 @@ func (d *Downloader) Terminate() {
 }
 
 // fetchHeight retrieves the head header of the remote peer to aid in estimating
-// the total time a pending synchronisation would take.
+// the total time a pending synchronization would take.
 func (d *Downloader) fetchHeight(p *peerConnection) (*types.Header, error) {
 	p.log.Debug("Retrieving remote chain height")
 
@@ -1411,7 +1411,7 @@ func (d *Downloader) importBlockResults(results []*fetchResult) error {
 }
 
 // processFastSyncContent takes fetch results from the queue and writes them to the
-// database. It also controls the synchronisation of state nodes of the pivot block.
+// database. It also controls the synchronization of state nodes of the pivot block.
 func (d *Downloader) processFastSyncContent(latest *types.Header) error {
 	// Start syncing state of the reported head block. This should get us most of
 	// the state of the pivot block.
