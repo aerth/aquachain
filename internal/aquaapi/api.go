@@ -314,7 +314,11 @@ func (s *PrivateAccountAPI) NewAccount(password string) (common.Address, error) 
 	if s.am == nil {
 		return common.Address{}, ErrKeystoreDisabled
 	}
-	acc, err := fetchKeystore(s.am).NewAccount(password)
+	am := fetchKeystore(s.am)
+	if am == nil {
+		return common.Address{}, ErrKeystoreDisabled
+	}
+	acc, err := am.NewAccount(password)
 	if err == nil {
 		return acc.Address, nil
 	}
@@ -326,12 +330,20 @@ func fetchKeystore(am *accounts.Manager) *keystore.KeyStore {
 	if am == nil { // -nokeys flag
 		return nil
 	}
-	return am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	a, ok := am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	if !ok {
+		log.Warn("Failed to fetch keystore from account manager")
+		return nil // should be handled like nokeys mode
+	}
+	return a
 }
 
 // ImportRawKey stores the given hex encoded ECDSA key into the key directory,
 // encrypting it with the passphrase.
 func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (common.Address, error) {
+	if s.am == nil {
+		return common.Address{}, ErrKeystoreDisabled
+	}
 	key, err := crypto.HexToBtcec(privkey)
 	if err != nil {
 		return common.Address{}, err
@@ -344,11 +356,14 @@ func (s *PrivateAccountAPI) ImportRawKey(privkey string, password string) (commo
 // the given password for duration seconds. If duration is nil it will use a
 // default of 300 seconds. It returns an indication if the account was unlocked.
 func (s *PrivateAccountAPI) UnlockAccount(addr common.Address, password string, duration *uint64) (bool, error) {
-	const max = uint64(time.Duration(math.MaxInt64) / time.Second)
+	const maxduration = uint64(time.Duration(math.MaxInt64) / time.Second)
 	var d time.Duration
 	if duration == nil {
 		d = 300 * time.Second
-	} else if *duration > max {
+		log.Warn("UnlockAccount called with nil duration, using default of 300 seconds")
+	} else if *duration == 0 {
+		return false, errors.New("unlock duration cannot be zero")
+	} else if *duration > maxduration {
 		return false, errors.New("unlock duration too large")
 	} else {
 		d = time.Duration(*duration) * time.Second
