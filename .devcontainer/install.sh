@@ -1,5 +1,6 @@
 #!/bin/bash
 # .devcontainer/install.sh 
+# this script doesnt do anything but checks if it has been run
 if [ ! -d /aquadatadir ]; then
     echo $(date +%Y-%m-%d:%H:%M:%S) - Warn: /aquadatadir doesntexist  | tee -a /aquadatadir/install.log
     mkdir -p /aquadatadir
