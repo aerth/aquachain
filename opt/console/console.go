@@ -264,16 +264,16 @@ func (c *Console) init(preload []string) error {
 
 	// Load all the internal utility JavaScript libraries
 	if err := c.jsre.Compile("bignumber.js", jsre.BigNumber_JS); err != nil {
-		return fmt.Errorf("bignumber.js: %v", err)
+		return fmt.Errorf("bignumber.js compile: %w", err)
 	}
 	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
-		return fmt.Errorf("web3.js: %v", err)
+		return fmt.Errorf("web3.js compile: %w", err)
 	}
 	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
-		return fmt.Errorf("web3 require: %v", err)
+		return fmt.Errorf("web3 require: %w", err)
 	}
 	if _, err := c.jsre.Run("var web3 = new Web3(jeth);"); err != nil {
-		return fmt.Errorf("web3 provider: %v", err)
+		return fmt.Errorf("web3 provider: %w", err)
 	}
 
 	{ // bugfix for web3.toWei otto truncate float
