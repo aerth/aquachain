@@ -1239,15 +1239,15 @@ func (bc *BlockChain) insertChain2(chain types.Blocks, try int) (int, []interfac
 		}
 		switch status {
 		case CanonStatTy:
-			if true {
-				log.ResetFieldPadding()
-				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+			if i == 0 || i == len(chain)-1 {
+				log.DebugSlow("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
 					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)),
 					"difficulty", block.Difficulty(), "td", bc.GetTd(block.Hash(), block.NumberU64()))
-			} else {
-				log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
-					"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
 			}
+			// else {
+			// 	log.Debug("Inserted new block", "number", block.Number(), "hash", block.Hash(), "uncles", len(block.Uncles()),
+			// 		"txs", len(block.Transactions()), "gas", block.GasUsed(), "elapsed", common.PrettyDuration(time.Since(bstart)))
+			// }
 
 			coalescedLogs = append(coalescedLogs, logs...)
 			blockInsertTimer.UpdateSince(bstart)
