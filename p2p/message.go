@@ -291,7 +291,7 @@ func (msge *msgEventer) ReadMsg() (Msg, error) {
 // WriteMsg writes a message to the underlying MsgReadWriter and emits a
 // "message sent" event
 func (msge *msgEventer) WriteMsg(msg Msg) error {
-	log.Debug("p2p writing message", "code", Devp2pMessageTypeString(int(msg.Code)), "size", msg.Size)
+	// log.Debug("p2p writing message", "code", Devp2pMessageTypeString(int(msg.Code)), "size", msg.Size)
 	err := msge.MsgReadWriter.WriteMsg(msg)
 	if err != nil {
 		log.Warn("p2p write error", "err", err)

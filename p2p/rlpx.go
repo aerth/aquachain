@@ -626,7 +626,7 @@ func (rw *rlpxFrameRW) WriteMsg(msg Msg) error {
 		payload = snappy.Encode(nil, payload)
 
 		msg.Payload = bytes.NewReader(payload)
-		log.Info("writing", "msg", msg.Code, "size", len(payload), "payload", msg.Payload, "type", ptype)
+		// log.Info("writing", "msg", msg.Code, "size", len(payload), "payload", msg.Payload, "type", ptype)
 		msg.Size = uint32(len(payload))
 	}
 	// write header
