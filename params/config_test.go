@@ -135,7 +135,7 @@ func TestChainConfigs(t *testing.T) {
 }
 
 func TestConfigHash(t *testing.T) {
-	a := AllChainConfigs()
+	a := allChainConfigs
 	last := common.Hash{}
 	for i := range a {
 		v := a[i]
