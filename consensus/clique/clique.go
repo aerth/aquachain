@@ -134,6 +134,7 @@ var (
 // backing account.
 type SignerFn func(accounts.Account, []byte) ([]byte, error)
 
+// get seed to sign
 var sigHash = types.SigHash
 
 // ecrecover extracts the AquaChain account address from a signed header.
@@ -149,8 +150,12 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 
+	sighash, err := sigHash(header)
+	if err != nil {
+		return common.Address{}, err // invalid header etc
+	}
 	// Recover the public key and the AquaChain address
-	pubkey, err := crypto.Ecrecover(sigHash(header).Bytes(), signature)
+	pubkey, err := crypto.Ecrecover(sighash.Bytes(), signature)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -627,7 +632,11 @@ func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, stop <-ch
 	}
 	// Sign all the things!
 	log.Info("Signing clique block", "number", number, "hash", header.Hash().Hex(), "signer", signer.Hex())
-	sighash, err := signFn(accounts.Account{Address: signer}, sigHash(header).Bytes())
+	sighashed, err := sigHash(header)
+	if err != nil {
+		return nil, err
+	}
+	sighash, err := signFn(accounts.Account{Address: signer}, sighashed.Bytes())
 	if err != nil {
 		return nil, err
 	}

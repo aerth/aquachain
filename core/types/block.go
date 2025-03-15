@@ -98,9 +98,8 @@ type Header struct {
 // Note, the method requires the extra data to be at least 65 bytes, otherwise it
 // panics. This is done to avoid accidentally using both forms (signature present
 // or not), which could be abused to produce different hashes for the same header.
-func SigHash(header *Header) (hash common.Hash) {
-
-	return rlpHash(byte(header.Version), []interface{}{
+func SigHash(header *Header) (hash common.Hash, err error) {
+	return RlpHash(byte(header.Version), []interface{}{
 		header.ParentHash,
 		header.UncleHash,
 		header.Coinbase,
@@ -155,7 +154,11 @@ func (h *Header) Hash() common.Hash {
 
 		panic(warning)
 	}
-	return rlpHash(byte(h.Version), h)
+	x, err := RlpHash(byte(h.Version), h)
+	if err != nil {
+		panic("Header.Hash: RlpHash: " + err.Error())
+	}
+	return x
 }
 
 // HashNoNonce returns the hash which is used as input for the proof-of-work search.
@@ -164,7 +167,7 @@ func (h *Header) HashNoNonce() common.Hash {
 	if h.Version == 3 {
 		v = 3
 	}
-	return rlpHash(v, []interface{}{
+	x, err := RlpHash(v, []interface{}{
 		h.ParentHash,
 		h.UncleHash,
 		h.Coinbase,
@@ -179,6 +182,10 @@ func (h *Header) HashNoNonce() common.Hash {
 		h.Time,
 		h.Extra,
 	})
+	if err != nil {
+		panic("Header.HashNoNonce: RlpHash: " + err.Error())
+	}
+	return x
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
@@ -187,25 +194,23 @@ func (h *Header) Size() common.StorageSize {
 	return common.StorageSize(unsafe.Sizeof(*h)) + common.StorageSize(len(h.Extra)+(h.Difficulty.BitLen()+h.Number.BitLen()+h.Time.BitLen())/8)
 }
 
-func RlpHash(version byte, x any) (h common.Hash) {
-	return rlpHash(version, x)
-}
-
-func rlpHash(version byte, x interface{}) (h common.Hash) {
+func RlpHash(version byte, x interface{}) (h common.Hash, err error) {
 	switch version {
 	case 0, 1: // ethash
 		hw := sha3.NewKeccak256()
-		if err := rlp.Encode(hw, x); err != nil {
+		if err = rlp.Encode(hw, x); err != nil {
 			log.GracefulShutdownf("encountered error: %v", err)
-			time.Sleep(time.Second * 30) // hopefully doesn't return
-			panic("encountered error" + err.Error())
+			return h, err
 		}
 		hw.Sum(h[:0])
-		return h
+		return h, nil
 	default: // argon2id switch
 		buf := &bytes.Buffer{}
-		rlp.Encode(buf, x)
-		return common.BytesToHash(crypto.VersionHash(version, buf.Bytes()))
+		if err := rlp.Encode(buf, x); err != nil {
+			log.GracefulShutdownf("encountered error: %v", err)
+			return h, err
+		}
+		return common.BytesToHash(crypto.VersionHash(version, buf.Bytes())), nil
 	}
 }
 
@@ -477,7 +482,15 @@ func CalcUncleHash(uncles []*Header) common.Hash {
 			}
 		}
 	}
-	return rlpHash(1, uncles)
+	return MustRlpHash(1, uncles)
+}
+
+func MustRlpHash(version byte, x interface{}) common.Hash {
+	h, err := RlpHash(version, x)
+	if err != nil {
+		panic("RlpHash: " + err.Error())
+	}
+	return h
 }
 
 // WithSeal returns a new block with the data from b but the header replaced with
