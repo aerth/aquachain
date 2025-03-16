@@ -145,9 +145,10 @@ var (
 		Usage: "Block period to use in developer mode (0 = mine only if transaction pending)",
 	}
 	IdentityFlag = &cli.StringFlag{
-		Name:   "identity",
-		Usage:  "Custom node name (used in p2p networking, eg: \"CoolPool\", becomes \"Aquachain-CoolPool/v1.2.3-release/linux-amd64/go.1.24.1\")",
-		Action: checkStringFlag,
+		Name:     "identity",
+		Usage:    "Custom node name (used in p2p networking, eg: \"CoolPool\", becomes \"Aquachain-CoolPool/v1.2.3-release/linux-amd64/go.1.24.1\")",
+		Action:   checkStringFlag,
+		Category: "CHAIN NODE",
 	}
 	WorkingDirectoryFlag = &cli.StringFlag{
 		Name: "WorkingDirectory",
@@ -157,7 +158,8 @@ var (
 			}
 			return nil
 		},
-		Hidden: true,
+		Hidden:   true,
+		Category: "RPC CLIENT",
 	}
 	JavascriptDirectoryFlag = &cli.StringFlag{
 		Name:      "jspath",
@@ -183,11 +185,13 @@ var (
 			}
 			return nil
 		},
+		Category: "RPC CLIENT",
 	}
 
 	FastSyncFlag = &cli.BoolFlag{
-		Name:  "fast",
-		Usage: "Enable fast syncing through state downloads",
+		Name:     "fast",
+		Usage:    "Enable so-called fast syncing through state downloads (disabled by default)",
+		Category: "SYNC",
 	}
 	tmpdefaultSyncMode = aqua.DefaultConfig.SyncMode
 
@@ -201,12 +205,15 @@ var (
 			}
 			return checkStringFlag(ctx, cmd, v)
 		},
+		Category: "SYNC",
 	}
+
 	GCModeFlag = &cli.StringFlag{
-		Name:   "gcmode",
-		Usage:  `GC mode to use, either "full" or "archive". Use "archive" for full accurate state (for example, 'admin.supply')`,
-		Value:  "archive",
-		Action: checkStringFlag,
+		Name:     "gcmode",
+		Usage:    `Garbage collection mode to use, either "full" or "archive" (disable). Default is "archive" for full accurate state (for example, 'admin.supply')`,
+		Value:    "archive",
+		Action:   checkStringFlag,
+		Category: "SYNC",
 	}
 )
 
@@ -245,12 +252,12 @@ var (
 	AquahashCachesInMemoryFlag = &cli.IntFlag{
 		Name:  "aquahash.cachesinmem",
 		Usage: "Number of recent aquahash caches to keep in memory (16MB each)",
-		Value: int64(aqua.DefaultConfig.Aquahash.CachesInMem),
+		Value: 0,
 	}
 	AquahashCachesOnDiskFlag = &cli.IntFlag{
 		Name:  "aquahash.cachesondisk",
 		Usage: "Number of recent aquahash caches to keep on disk (16MB each)",
-		Value: int64(aqua.DefaultConfig.Aquahash.CachesOnDisk),
+		Value: 0,
 	}
 	AquahashDatasetDirFlag = &cli.StringFlag{
 		Name:   "aquahash.dagdir",
@@ -490,29 +497,35 @@ var (
 
 	// Network Settings
 	MaxPeersFlag = &cli.IntFlag{
-		Name:  "maxpeers",
-		Usage: "Maximum number of network peers (network disabled if set to 0)",
-		Value: 25,
+		Name:     "maxpeers",
+		Usage:    "Maximum number of network peers (network disabled if set to 0)",
+		Value:    25,
+		Category: "NETWORKING",
 	}
 	MaxPendingPeersFlag = &cli.IntFlag{
-		Name:  "maxpendpeers",
-		Usage: "Maximum number of pending connection attempts (defaults used if set to 0)",
-		Value: 0,
+		Name:     "maxpendpeers",
+		Usage:    "Maximum number of pending connection attempts (defaults used if set to 0)",
+		Value:    0,
+		Category: "NETWORKING",
 	}
 	ListenPortFlag = &cli.IntFlag{
-		Name:  "port",
-		Usage: "Network listening port",
-		Value: 21303,
+		Name:     "port",
+		Usage:    "Network listening port",
+		Value:    21303,
+		Category: "NETWORKING",
 	}
 	ListenAddrFlag = &cli.StringFlag{
-		Name:  "addr",
-		Usage: "Network listening addr (all interfaces, port 21303 TCP and UDP)",
-		Value: "",
+		Name:     "addr",
+		Usage:    "Network listening addr (all interfaces, port 21303 TCP and UDP)",
+		Value:    "",
+		Category: "NETWORKING",
 	}
 	BootnodesFlag = &cli.StringFlag{
-		Name:  "bootnodes",
-		Usage: "Comma separated enode URLs for P2P discovery bootstrap (set v4+v5 instead for light servers)",
-		Value: "",
+		Name:     "bootnodes",
+		Aliases:  []string{"p2p.bootnodes"},
+		Usage:    "Comma separated enode URLs for P2P discovery bootstrap (set v4+v5 instead for light servers)",
+		Value:    "",
+		Category: "NETWORKING",
 	}
 	// BootnodesV4Flag = &cli.StringFlag{
 	// 	Name:  "bootnodesv4",
@@ -520,25 +533,30 @@ var (
 	// 	Value: "",
 	// }
 	NodeKeyFileFlag = &cli.StringFlag{
-		Name:  "nodekey",
-		Usage: "P2P node key file",
+		Name:     "nodekey",
+		Usage:    "P2P node key file",
+		Category: "NETWORKING",
 	}
 	NodeKeyHexFlag = &cli.StringFlag{
-		Name:  "nodekeyhex",
-		Usage: "P2P node key as hex (for testing)",
+		Name:     "nodekeyhex",
+		Usage:    "P2P node key as hex (for testing)",
+		Category: "NETWORKING",
 	}
 	NATFlag = &cli.StringFlag{
-		Name:  "nat",
-		Usage: "NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>)",
-		Value: "any",
+		Name:     "nat",
+		Usage:    "NAT port mapping mechanism (any|none|upnp|pmp|extip:<IP>)",
+		Value:    "any",
+		Category: "NETWORKING",
 	}
 	NoDiscoverFlag = &cli.BoolFlag{
-		Name:  "nodiscover",
-		Usage: "Disables the peer discovery mechanism (manual peer addition)",
+		Name:     "nodiscover",
+		Usage:    "Disables the peer discovery mechanism (manual peer addition)",
+		Category: "NETWORKING",
 	}
 	OfflineFlag = &cli.BoolFlag{
-		Name:  "offline",
-		Usage: "Disables peer discovery and sets nat=none, still listens on tcp/udp port",
+		Name:     "offline",
+		Usage:    "Disables peer discovery and sets nat=none, still listens on tcp/udp port",
+		Category: "NETWORKING",
 	}
 	NoKeysFlag = &cli.BoolFlag{
 		Name:  "nokeys",
@@ -553,31 +571,48 @@ var (
 			}
 			return nil
 		},
+		Category: "AQUACHAIN",
 	}
 	NoSignFlag = &cli.BoolFlag{
 		Name:  "nosign",
 		Usage: "Disables all signing via RPC endpoints (env:NO_SIGN) (useful when wallet is unlocked for signing blocks on a public testnet3 server)",
 		Value: sense.EnvBool(sense.Getenv("NO_SIGN")) || sense.EnvBool(sense.Getenv("NOSIGN")), // both just in case
+		Action: func(ctx context.Context, cmd *cli.Command, v bool) error {
+			if v {
+				os.Setenv("NO_SIGN", "1")
+				if !sense.IsNoSign() {
+					return fmt.Errorf("failed to set NO_SIGN=1")
+				}
+
+				return nil
+			}
+			return nil
+		},
+		Category: "AQUACHAIN",
 	}
 	NetrestrictFlag = &cli.StringFlag{
-		Name:  "netrestrict",
-		Usage: "Restricts network communication to the given IP networks (CIDR masks)",
+		Name:     "netrestrict",
+		Usage:    "Restricts network communication to the given IP networks (CIDR masks)",
+		Category: "NETWORKING",
 	}
 	// Gas price oracle settings
 	GpoBlocksFlag = &cli.IntFlag{
-		Name:  "gpoblocks",
-		Usage: "Number of recent blocks to check for gas prices",
-		Value: int64(aqua.DefaultConfig.GPO.Blocks),
+		Name:     "gpoblocks",
+		Usage:    "Number of recent blocks to check for gas prices",
+		Value:    int64(aqua.DefaultConfig.GPO.Blocks),
+		Category: "GAS PRICE ORACLE",
 	}
 	GpoPercentileFlag = &cli.IntFlag{
-		Name:  "gpopercentile",
-		Usage: "Suggested gas price is the given percentile of a set of recent transaction gas prices",
-		Value: int64(aqua.DefaultConfig.GPO.Percentile),
+		Name:     "gpopercentile",
+		Usage:    "Suggested gas price is the given percentile of a set of recent transaction gas prices",
+		Value:    int64(aqua.DefaultConfig.GPO.Percentile),
+		Category: "GAS PRICE ORACLE",
 	}
 	HF8MainnetFlag = &cli.IntFlag{
-		Name:  "hf8",
-		Usage: "Hard fork #8 activation block",
-		Value: -1,
+		Name:     "hf8",
+		Usage:    "Hard fork #8 activation block (if HF8 is to be activated, -hf8 <blocknumber>)",
+		Value:    -1,
+		Category: "AQUACHAIN",
 	}
 )
 
