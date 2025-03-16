@@ -55,19 +55,6 @@ SUBCOMMANDS:
 {{end}}
 {{end}}{{end}}`
 
-const appHelpTemplate = `{{.Name}} {{if .Flags}}[global options] {{end}}command{{if .Flags}} [command options]{{end}} [arguments...]
-
-VERSION:
-   {{.Version}}
-
-COMMANDS:
-   {{range .Commands}}{{.Name}}{{with .ShortName}}, {{.}}{{end}}{{ "\t" }}{{.Usage}}
-   {{end}}{{if .Flags}}
-GLOBAL OPTIONS:
-   {{range .Flags}}{{.}}
-   {{end}}{{end}}
-`
-
 // NewApp creates an app with sane defaults.
 func NewApp(name, gitCommit, usage string) *cli.Command {
 	if name == "" {
