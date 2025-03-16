@@ -19,6 +19,7 @@
 package subcommands
 
 import (
+	"fmt"
 	"io"
 	"sort"
 
@@ -37,29 +38,28 @@ const logo = `                              _           _
 
 // AppHelpTemplate is the test template for the default, global app help topic.
 var AppHelpTemplate = logo + `NAME:
-   {{.App.Name}} - {{.App.Usage}}
+   {{.Name}} - {{.Usage}}
 
     Copyright 2018-2025 The aquachain authors
     Copyright 2013-2018 The go-ethereum authors
 
 USAGE:
-   {{.App.Name}} [options]{{if .App.Commands}} command [command options]{{end}} {{if .App.ArgsUsage}}{{.App.ArgsUsage}}{{else}}[arguments...]{{end}}
-   {{if .App.Version}}
+   {{.Name}} [options]{{if .Commands}} command [command options]{{end}} {{if .ArgsUsage}}{{.ArgsUsage}}{{else}}[arguments...]{{end}}
+   {{if .Version}}
 VERSION:
-   {{.App.Version}}
-   {{end}}{{if len .App.Authors}}
+   {{.Version}}
+   {{end}}{{if len .Authors}}
 AUTHOR(S):
-   {{range .App.Authors}}{{ . }}{{end}}
-   {{end}}{{if .App.Commands}}
+   {{range .Authors}}{{ . }}{{end}}
+   {{end}}{{if .Commands}}
 COMMANDS:
-   {{range .App.Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
-   {{end}}{{end}}{{if .FlagGroups}}
-{{range .FlagGroups}}{{.Name}} OPTIONS:
-  {{range .Flags}}{{.}}
-  {{end}}
-{{end}}{{end}}{{if .App.Copyright }}
+   {{range .Commands}}{{join .Names ", "}}{{ "\t" }}{{.Usage}}
+   {{end}}{{end}}
+OPTIONS:
+   {{range .Flags}}{{.}}
+   {{end}}{{if .Copyright }}
 COPYRIGHT:
-   {{.App.Copyright}}
+   {{.Copyright}}
    {{end}}
 `
 
@@ -69,16 +69,56 @@ type flagGroup struct {
 	Flags []cli.Flag
 }
 
+func init() {
+	for _, group := range AppHelpFlagGroups {
+		for _, flag := range group.Flags {
+			switch f := flag.(type) {
+			case *cli.BoolFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.StringFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.IntFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.UintFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.DurationFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.FloatFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+			case *cli.StringSliceFlag:
+				if f.Category == "" {
+					f.Category = group.Name
+				}
+
+			default:
+				println(fmt.Sprintf("should add support for flag type: %T", flag))
+			}
+		}
+	}
+
+}
+
 // AppHelpFlagGroups is the application flags, grouped by functionality.
 var AppHelpFlagGroups = []flagGroup{
 	{
-		Name: "Aquachain",
+		Name: "AQUACHAIN",
 		Flags: []cli.Flag{
 			aquaflags.ConfigFileFlag,
 			aquaflags.DataDirFlag,
 			aquaflags.KeyStoreDirFlag,
 			aquaflags.UseUSBFlag,
-
 			aquaflags.SyncModeFlag,
 			aquaflags.ChainFlag,
 			aquaflags.GCModeFlag,
@@ -208,9 +248,9 @@ var AppHelpFlagGroups = []flagGroup{
 		}, debug.Flags...),
 	},
 
-	{
-		Name: "DEPRECATED",
-	},
+	// {
+	// 	Name: "DEPRECATED",
+	// },
 	{
 		Name:  "MISC",
 		Flags: []cli.Flag{aquaflags.FastSyncFlag},
@@ -265,7 +305,7 @@ func flagCategory(flag cli.Flag) string {
 func InitHelp() {
 	// Override the default app help template
 	cli.RootCommandHelpTemplate = AppHelpTemplate
-
+	cli.CommandHelpTemplate = CommandHelpTemplate
 	// Define a one shot struct to pass to the usage template
 	type helpData struct {
 		App        interface{}
@@ -311,8 +351,8 @@ func InitHelp() {
 		} else if tmpl == CommandHelpTemplate {
 			// Iterate over all command specific flags and categorize them
 			categorized := make(map[string][]cli.Flag)
-			for _, flag := range data.(cli.Command).Flags {
-				if _, ok := categorized[flag.String()]; !ok {
+			for _, flag := range data.(*cli.Command).Flags {
+				if _, ok := categorized[flag.Names()[0]]; !ok {
 					categorized[flagCategory(flag)] = append(categorized[flagCategory(flag)], flag)
 				}
 			}
@@ -326,8 +366,9 @@ func InitHelp() {
 
 			// add sorted array to data and render with default printer
 			originalHelpPrinter(w, tmpl, map[string]interface{}{
-				"cmd":              data,
-				"categorizedFlags": sorted,
+				"cmd":                data,
+				"categorizedFlags":   sorted,
+				"uncategorizedFlags": categorized["MISC"],
 			})
 		} else {
 			originalHelpPrinter(w, tmpl, data)
