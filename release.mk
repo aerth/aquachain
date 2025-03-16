@@ -57,8 +57,7 @@ release/$(maincmd_name)-%.tar.gz: tmprelease/bin/%
 	cp -t tmprelease/${maincmd_name}-$*/aquachain* ${releasetexts}
 	cd tmprelease && tar czf ../$@ ${maincmd_name}-$*
 
-# bin/windows-%: bin/windows-%.exe
-tmprelease/bin/windows-%/aquachain.exe: 
+tmprelease/bin/windows-%/aquachain.exe:  # eg: windows-amd64/aquachain.exe
 	$(info building windows-$* -> $@)
 	env GOOS=windows GOARCH=$(shell echo $* | cut -d- -f2) \
 		${MAKE} cross
@@ -71,21 +70,22 @@ tmprelease/bin/%/aquachain:
 	echo "built $* -> $@"
 	file $@
 
+
+# need three ways of making the file release packages
+# windows have exe get zip files, osx (darwin) get zip files, all others get tar.gz
 release/$(maincmd_name)-windows-amd64.zip: tmprelease/bin/windows-amd64
-	mkdir -p release
 	rm -rf tmprelease/${maincmd_name}-windows-amd64
-	mkdir -p tmprelease/${maincmd_name}-windows-amd64
+	mkdir -p release tmprelease/${maincmd_name}-windows-amd64
 	cp -t tmprelease/${maincmd_name}-windows-amd64 $^/aquachain* ${releasetexts}
 	cd tmprelease && zip -r ../$@ ${maincmd_name}-windows-amd64
 release/$(maincmd_name)-osx-amd64.zip: tmprelease/bin/darwin-amd64
-	mkdir -p release
 	rm -rf tmprelease/${maincmd_name}-osx-amd64
-	mkdir -p tmprelease/${maincmd_name}-osx-amd64
+	mkdir -p release tmprelease/${maincmd_name}-osx-amd64
 	cp -t tmprelease/${maincmd_name}-osx-amd64 $^/aquachain* ${releasetexts}
 	cd tmprelease && zip -r ../$@ ${maincmd_name}-osx-amd64
+# all others get tar.gz (linux, bsd, all architectures)
 release/$(maincmd_name)-%.tar.gz: tmprelease/bin/%
-	mkdir -p release
 	rm -rf tmprelease/${maincmd_name}-$*
-	mkdir -p tmprelease/${maincmd_name}-$*
+	mkdir -p release tmprelease/${maincmd_name}-$*
 	cp -t tmprelease/${maincmd_name}-$* $^/aquachain* ${releasetexts}
 	cd tmprelease && tar czf ../$@ ${maincmd_name}-$*
