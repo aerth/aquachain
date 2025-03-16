@@ -1025,10 +1025,7 @@ func (srv *Server) NodeInfo() *NodeInfo {
 
 	// Gather all the running protocol infos (only once per protocol type)
 	for _, proto := range srv.Protocols {
-		_, ok := info.Protocols[proto.Name]
-		if ok {
-			log.Warn("Duplicate protocol", "name", proto.Name)
-		}
+		_, ok := info.Protocols[proto.Name] // p2p protocol eg: 'aqua'
 		if !ok {
 			nodeInfo := (any)("unknown")
 			if query := proto.NodeInfo; query != nil {
