@@ -1089,6 +1089,7 @@ func TestEIP155Transition(t *testing.T) {
 	)
 
 	params.AddChainConfig(t.Name()+"1", gspec.Config)
+	defer params.DeleteChainConfig(t.Name() + "1")
 	blockchain, _ := NewBlockChain(context.TODO(), db, nil, gspec.Config, aquahash.NewFaker(), vm.Config{})
 	defer blockchain.Stop()
 
@@ -1158,6 +1159,8 @@ func TestEIP155Transition(t *testing.T) {
 	// generate an invalid chain id transaction
 	config := &params.ChainConfig{ChainId: big.NewInt(2), EIP155Block: big.NewInt(2), HomesteadBlock: new(big.Int)}
 	params.AddChainConfig(t.Name()+"2", config)
+	defer params.DeleteChainConfig(t.Name() + "2")
+
 	blocks, _ = GenerateChain(context.TODO(), config, blocks[len(blocks)-1], aquahash.NewFaker(), db, 4, func(i int, block *BlockGen) {
 		var (
 			tx      *types.Transaction
@@ -1202,6 +1205,7 @@ func TestEIP161AccountRemoval(t *testing.T) {
 	)
 
 	params.AddChainConfig(t.Name(), gspec.Config)
+	defer params.DeleteChainConfig(t.Name())
 	blockchain, _ := NewBlockChain(context.TODO(), db, nil, gspec.Config, aquahash.NewFaker(), vm.Config{})
 	defer blockchain.Stop()
 

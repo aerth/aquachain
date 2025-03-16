@@ -110,6 +110,7 @@ func newTester(t *testing.T, confOverride func(*aqua.Config)) *tester {
 	*chaincfg = *params.TestChainConfig
 	chaincfg.ChainId = new(big.Int).SetUint64(chainId)
 	params.AddChainConfig(t.Name(), chaincfg)
+	defer params.DeleteChainConfig(t.Name())
 
 	// Create a networkless protocol stack and start an Aquachain service within
 	stack, err := node.New(&node.Config{

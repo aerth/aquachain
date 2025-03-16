@@ -50,6 +50,7 @@ func ExampleService() {
 	defer closemain(fmt.Errorf("finished"))
 	// register the chain config, needed to name the chain config
 	params.AddChainConfig("coolchain", &params.ChainConfig{ChainId: big.NewInt(12345)})
+	defer params.DeleteChainConfig("coolchain")
 
 	// minimal config has chain id, 'allowip', and ctx and a node name
 	minimalConfig := &node.Config{
