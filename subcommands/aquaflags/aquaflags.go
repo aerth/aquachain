@@ -68,8 +68,9 @@ var (
 		},
 	}
 	KeyStoreDirFlag = &cli.StringFlag{
-		Name:  "keystore",
-		Usage: "Directory for the keystore (default = inside the datadir)",
+		Name:   "keystore",
+		Usage:  "Directory for the keystore (default = inside the datadir)",
+		Action: checkDirectoryFlag,
 	}
 	UseUSBFlag = &cli.BoolFlag{
 		Name:  "usb",
@@ -216,11 +217,30 @@ func checkStringFlag(ctx context.Context, cmd *cli.Command, v string) error {
 	return nil
 }
 
+func checkDirectoryFlag(ctx context.Context, cmd *cli.Command, v string) error {
+	if v == "" {
+		return fmt.Errorf("invalid directory: %q", v)
+	}
+	if err := checkStringFlag(ctx, cmd, v); err != nil {
+		return err
+	}
+	stat, err := os.Stat(v)
+	if err != nil {
+		return err
+	}
+	if !stat.IsDir() {
+		return fmt.Errorf("invalid directory: %q", v)
+	}
+	return nil
+}
+
 var (
 	// Aquahash settings
 	AquahashCacheDirFlag = &cli.StringFlag{
-		Name:  "aquahash.cachedir",
-		Usage: "Directory to store the aquahash verification caches (default = inside the datadir)",
+		Name:     "aquahash.cachedir",
+		Usage:    "Directory to store the aquahash v1 DAG verification caches for blocks 1-22800 (default = inside the datadir)",
+		Category: "AQUAHASH",
+		Action:   checkDirectoryFlag,
 	}
 	AquahashCachesInMemoryFlag = &cli.IntFlag{
 		Name:  "aquahash.cachesinmem",
@@ -233,9 +253,10 @@ var (
 		Value: int64(aqua.DefaultConfig.Aquahash.CachesOnDisk),
 	}
 	AquahashDatasetDirFlag = &cli.StringFlag{
-		Name:  "aquahash.dagdir",
-		Usage: "Directory to store the aquahash mining DAGs (default = inside home folder)",
-		Value: aqua.DefaultConfig.Aquahash.DatasetDir,
+		Name:   "aquahash.dagdir",
+		Usage:  "Directory to store the aquahash mining DAGs (default = inside home folder)",
+		Value:  aqua.DefaultConfig.Aquahash.DatasetDir,
+		Action: checkDirectoryFlag,
 	}
 	AquahashDatasetsInMemoryFlag = &cli.IntFlag{
 		Name:  "aquahash.dagsinmem",
@@ -421,8 +442,9 @@ var (
 		Usage: "Disable the IPC-RPC server",
 	}
 	IPCPathFlag = &cli.StringFlag{
-		Name:  "ipcpath",
-		Usage: "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
+		Name:   "ipcpath",
+		Usage:  "Filename for IPC socket/pipe within the datadir (explicit paths escape it)",
+		Action: checkDirectoryFlag,
 	}
 	WSEnabledFlag = &cli.BoolFlag{
 		Name:  "ws",
