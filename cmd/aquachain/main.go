@@ -57,22 +57,10 @@ func init() {
 	subcommands.SetBuildInfo(gitCommit, buildDate, gitTag, clientIdentifier)
 }
 
-var helpCommand = &cli.Command{
-	Name:  "help",
-	Usage: "show help",
-	Action: func(ctx context.Context, cmd *cli.Command) error {
-		cli.ShowAppHelp(cmd)
-		os.Exit(1)
-		return nil
-	},
-	UsageText: "aquachain help",
-}
-
 // setupMain ... for this main package only
 func setupMain() *cli.Command {
-	if !sense.EnvBool("HELP2") {
-		subcommands.InitHelp()
-	}
+	subcommands.InitHelp()
+
 	defaults := subcommands.NewApp(clientIdentifier, gitCommit, "the Aquachain command line interface")
 	this_app = &cli.Command{
 		Name:                       defaults.Name,
@@ -103,12 +91,13 @@ func setupMain() *cli.Command {
 		After:          afterFunc,
 		DefaultCommand: "consoledefault",
 		Commands: append([]*cli.Command{
-			helpCommand,
+			// helpCommand,
 			consoledefault,
 		}, subcommands.Subcommands()...),
-		HideHelpCommand: true,
-		HideVersion:     true,
-		Copyright:       "Copyright 2018-2025 The Aquachain Authors",
+		// HideHelpCommand: true,
+		HideVersion: false,
+
+		Copyright: "Copyright 2018-2025 The Aquachain Authors",
 	}
 	{ // add and sort flags
 		app := this_app
@@ -142,7 +131,9 @@ func afterFunc(context.Context, *cli.Command) error {
 	mainctxs.MainCancelCause()(fmt.Errorf("finished")) // quit anything running in case it wasnt called
 	debug.Exit()                                       // quit any running debug profiling
 	console.Stdin.Close()
-	time.Sleep(time.Second / 2) // just in case we got to this function by accident
+	if err := debug.WaitLoops(time.Second / 2); err != nil {
+		log.Warn("waiting for loops", "err", err)
+	}
 	return nil
 }
 
