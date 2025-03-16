@@ -171,6 +171,8 @@ func TestSetupGenesis(t *testing.T) {
 				// Advance to block #4, past the homestead transition block of customg.
 				genesis := oldcustomg.MustCommit(db)
 
+				params.AddChainConfig("customg", customg.Config)
+				defer params.DeleteChainConfig("customg")
 				bc, _ := NewBlockChain(context.TODO(), db, nil, oldcustomg.Config, aquahash.NewFullFaker(), vm.Config{})
 				defer bc.Stop()
 

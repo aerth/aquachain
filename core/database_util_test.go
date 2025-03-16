@@ -107,7 +107,10 @@ func TestBodyStorage(t *testing.T) {
 	db := aquadb.NewMemDatabase()
 
 	// Create a test body to move around the database and make sure it's really new
-	body := &types.Body{Uncles: []*types.Header{{Number: big.NewInt(3), Extra: []byte("test header")}}}
+	body := &types.Body{
+		Uncles: []*types.Header{
+			{Number: big.NewInt(1), Extra: []byte("test uncle")},
+		}}
 
 	hasher := sha3.NewKeccak256()
 	err := rlp.Encode(hasher, body)

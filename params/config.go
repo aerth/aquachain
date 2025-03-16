@@ -387,6 +387,22 @@ var allChainConfigs = defaultChainConfigs()
 // 	allChainConfigs = cfgs
 // }
 
+func DeleteChainConfig(name string) {
+	if name == "aqua" || name == "testnet" || name == "testnet2" || name == "testnet3" {
+		panic("cannot delete default chain configs")
+	}
+	newChainnames := make(map[string]*ChainConfig)
+	maps.Copy(newChainnames, chainNames)
+	delete(newChainnames, name)
+	chainNames = newChainnames
+	newAllChainConfigs := make([]*ChainConfig, 0)
+	for _, cfg := range allChainConfigs {
+		if cfg.Name() != name {
+			newAllChainConfigs = append(newAllChainConfigs, cfg)
+		}
+	}
+	allChainConfigs = newAllChainConfigs
+}
 func AddChainConfig(name string, cfg *ChainConfig) {
 	if GetChainConfigByChainId(cfg.ChainId) != nil {
 		panic("a chain with that chainId is already defined")
