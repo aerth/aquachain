@@ -463,15 +463,18 @@ func (c *writeCounter) Write(b []byte) (int, error) {
 }
 
 func CalcUncleHash(uncles []*Header) common.Hash {
-	for _, v := range uncles {
-		if v == nil || v.Number == nil {
-			panic("nil uncle")
-		}
-		if v.Number.Sign() == 0 {
-			panic("zero uncle")
-		}
-		if v.Number.Sign() < 0 {
-			panic("negative uncle")
+	var checkInner bool = true //TODO
+	if checkInner {
+		for _, v := range uncles {
+			if v == nil || v.Number == nil {
+				panic("nil uncle")
+			}
+			if v.Number.Sign() == 0 {
+				panic("zero uncle")
+			}
+			if v.Number.Sign() < 0 {
+				panic("negative uncle")
+			}
 		}
 	}
 	return rlpHash(1, uncles)
