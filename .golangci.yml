@@ -10,7 +10,6 @@ issues:
     - ^p2p/simulations$
     - ^p2p/simulations
     - ^p2p/testing
-    - ^aqua/accounts/abi/bind$
 output:
   print-issued-lines: true
   print-linter-name: true
