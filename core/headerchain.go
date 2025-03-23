@@ -360,7 +360,7 @@ func (hc *HeaderChain) WriteTd(hash common.Hash, number uint64, td *big.Int) err
 }
 
 // GetHeader retrieves a block header from the database by hash and number,
-// caching it if found.
+// caching it if found. It sets the 'Version' byte according to the chain config.
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {
 	// Short circuit if the header's already in the cache, retrieve otherwise
 	if header, ok := hc.headerCache.Get(hash); ok {
@@ -372,7 +372,7 @@ func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header 
 	}
 	header.Version = hc.Config().GetBlockVersion(header.Number)
 	if header.Hash() != hash {
-		log.Warn("header hash version mismatch", "dbhash", header.Hash().TerminalString(), "want", hash.TerminalString(), "config", hc.Config().Name(), "hf", hc.Config().HF, "algo", header.Version.String())
+		log.Error("header hash version mismatch", "dbhash", header.Hash().TerminalString(), "want", hash.TerminalString(), "config", hc.Config().Name(), "hf", hc.Config().HF, "algo", header.Version.String())
 		return nil
 	}
 	// Cache the found header for next time and return

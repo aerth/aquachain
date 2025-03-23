@@ -1631,7 +1631,7 @@ func (bc *BlockChain) GetTdByHash(hash common.Hash) *big.Int {
 }
 
 // GetHeader retrieves a block header from the database by hash and number,
-// caching it if found.
+// caching it if found. With Version byte.
 func (bc *BlockChain) GetHeader(hash common.Hash, number uint64) *types.Header {
 	return bc.hc.GetHeader(hash, number)
 }
