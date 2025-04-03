@@ -34,6 +34,7 @@ import (
 	"gitlab.com/aquachain/aquachain/params"
 	rpc "gitlab.com/aquachain/aquachain/rpc/rpcclient"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
+	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
 // // ATM the url is left to the user and deployment to
@@ -163,7 +164,7 @@ func localConsole(ctx context.Context, cmd *cli.Command) error {
 	}
 	// Otherwise print the welcome screen and enter interactive mode
 	console.Welcome()
-	console.Interactive(mainctx)
+	console.Interactive(mainctxs.Main())
 	return nil
 }
 
