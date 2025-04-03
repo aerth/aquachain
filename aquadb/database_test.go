@@ -19,7 +19,6 @@ package aquadb_test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"sync"
@@ -29,7 +28,7 @@ import (
 )
 
 func newTestLDB() (*aquadb.LDBDatabase, func()) {
-	dirname, err := ioutil.TempDir(os.TempDir(), "aquadb_test_")
+	dirname, err := os.MkdirTemp(os.TempDir(), "aquadb_test_")
 	if err != nil {
 		panic("failed to create test file: " + err.Error())
 	}
