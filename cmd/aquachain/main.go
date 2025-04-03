@@ -68,7 +68,7 @@ func setupMain() *cli.Command {
 		ShellCompletionCommandName: defaults.ShellCompletionCommandName,
 		Suggest:                    defaults.Suggest,
 		Hidden:                     true,
-		Flags: append([]cli.Flag{
+		Flags: append([]cli.Flag{ // "global flags", keep it short
 			aquaflags.NoEnvFlag,
 			aquaflags.DoitNowFlag,
 			aquaflags.ConfigFileFlag,
@@ -88,7 +88,7 @@ func setupMain() *cli.Command {
 		},
 
 		After:          afterFunc,
-		DefaultCommand: "consoledefault",
+		DefaultCommand: "help",
 		Commands: append([]*cli.Command{
 			// helpCommand,
 			consoledefault,
@@ -152,8 +152,8 @@ func isNodeFunc(subcmd string) bool {
 
 // beforeFunc only for this main package
 func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-	println("BEFOREFUNC")
 	debug.PrintStack()
+	println("BEFOREFUNC RUNNING NOW")
 	if mainsubcommand != "" {
 		return ctx, fmt.Errorf("beforeFunc called twice, first=%v, next=%v/%v", mainsubcommand, cmd.Args().First(), cmd.Name)
 	}
