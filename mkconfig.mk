@@ -23,11 +23,7 @@ endif
 
 # build flags and tags (TODO: use a separator instead of base64)
 tags ?= netgo osusergo static
-TAGS64 ?= $(shell printf "$(tags)"|base64 | tr -d '\r\n' | tr -d '\n' || true)
-#$(info tags = "$(tags)" b64: $(TAGS64))
 
-# export env used by recursive make
-export GOOS GOARCH GOPATH GOCMD GOFLAGS TAGS64
 
 # aquachain command for building each target version
 aquachain_cmd := ./cmd/aquachain
@@ -75,7 +71,14 @@ endif
 ifeq (1,$(cgo))
 GO_FLAGS += -installsuffix cgo
 LINKER_FLAGS += -linkmode external -extldflags -static
+tags += cgo
 endif
+
+TAGS64 ?= $(shell printf "$(tags)"|base64 | tr -d '\r\n' | tr -d '\n' || true)
+#$(info tags = "$(tags)" b64: $(TAGS64))
+
+# export env used by recursive make
+export GOOS GOARCH GOPATH GOCMD GOFLAGS TAGS64
 
 # linker flags
 LINKER_FLAGS ?= -s -w
