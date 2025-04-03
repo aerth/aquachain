@@ -17,6 +17,7 @@
 package p2p
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -380,6 +381,8 @@ func (p *Peer) startProtocols(writeStart <-chan struct{}, writeErr chan<- error)
 			if err == nil {
 				p.log.Warn(fmt.Sprintf("Protocol %s/%d returned", proto.Name, proto.Version))
 				err = errProtocolReturned
+			} else if errors.Is(err, io.EOF) {
+				p.log.Warn(fmt.Sprintf("Protocol %s/%d closed by peer", proto.Name, proto.Version))
 			} else {
 				p.log.Warn(fmt.Sprintf("Protocol %s/%d failed", proto.Name, proto.Version), "err", err)
 			}
