@@ -28,8 +28,6 @@ import (
 	"testing"
 	"testing/quick"
 
-	check "gopkg.in/check.v1"
-
 	"gitlab.com/aquachain/aquachain/aquadb"
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/core/types"
@@ -406,7 +404,7 @@ func (test *snapshotTest) checkEqual(state, checkstate *StateDB) error {
 	return nil
 }
 
-func (s *StateSuite) TestTouchDelete(c *check.C) {
+func (s *StateSuite) TestTouchDelete(c *testing.T) {
 	s.state.GetOrNewStateObject(common.Address{})
 	root, _ := s.state.Commit(false)
 	s.state.Reset(root)

@@ -24,19 +24,26 @@ import (
 	"gitlab.com/aquachain/aquachain/aquadb"
 	"gitlab.com/aquachain/aquachain/common"
 	"gitlab.com/aquachain/aquachain/crypto"
-	checker "gopkg.in/check.v1"
 )
+
+func TestStateSuite(t *testing.T) {
+	suite := new(StateSuite)
+	suite.SetUpTest(t)
+	suite.TestDump(t)
+	suite.TestNull(t)
+	suite.TestSnapshot(t)
+	suite.TestSnapshotEmpty(t)
+	suite.TestTouchDelete(t)
+}
 
 type StateSuite struct {
 	db    *aquadb.MemDatabase
 	state *StateDB
 }
 
-var _ = checker.Suite(&StateSuite{})
-
 var toAddr = common.BytesToAddress
 
-func (s *StateSuite) TestDump(c *checker.C) {
+func (s *StateSuite) TestDump(t *testing.T) {
 	// generate a few entries
 	obj1 := s.state.GetOrNewStateObject(toAddr([]byte{0x01}))
 	obj1.AddBalance(big.NewInt(22))
@@ -82,16 +89,16 @@ func (s *StateSuite) TestDump(c *checker.C) {
     }
 }`
 	if got != want {
-		c.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
+		t.Errorf("dump mismatch:\ngot: %s\nwant: %s\n", got, want)
 	}
 }
 
-func (s *StateSuite) SetUpTest(c *checker.C) {
+func (s *StateSuite) SetUpTest(t *testing.T) {
 	s.db = aquadb.NewMemDatabase()
 	s.state, _ = New(common.Hash{}, NewDatabase(s.db))
 }
 
-func (s *StateSuite) TestNull(c *checker.C) {
+func (s *StateSuite) TestNull(t *testing.T) {
 	address := common.HexToAddress("0x823140710bf13990e4500136726d8b55")
 	s.state.CreateAccount(address)
 	//value := common.FromHex("0x823140710bf13990e4500136726d8b55")
@@ -100,11 +107,11 @@ func (s *StateSuite) TestNull(c *checker.C) {
 	s.state.Commit(false)
 	value = s.state.GetState(address, common.Hash{})
 	if !common.EmptyHash(value) {
-		c.Errorf("expected empty hash. got %x", value)
+		t.Errorf("expected empty hash. got %x", value)
 	}
 }
 
-func (s *StateSuite) TestSnapshot(c *checker.C) {
+func (s *StateSuite) TestSnapshot(t *testing.T) {
 	stateobjaddr := toAddr([]byte("aa"))
 	var storageaddr common.Hash
 	data1 := common.BytesToHash([]byte{42})
@@ -123,10 +130,15 @@ func (s *StateSuite) TestSnapshot(c *checker.C) {
 	// get state storage value
 	res := s.state.GetState(stateobjaddr, storageaddr)
 
-	c.Assert(data1, checker.DeepEquals, res)
+	if res != data1 {
+		t.Fatalf("expected %x, got %x", data1, res)
+	}
+	if !bytes.Equal(data1[:], res[:]) {
+		t.Fatalf("expected %x, got %x", data1, res)
+	}
 }
 
-func (s *StateSuite) TestSnapshotEmpty(c *checker.C) {
+func (s *StateSuite) TestSnapshotEmpty(t *testing.T) {
 	s.state.RevertToSnapshot(s.state.Snapshot())
 }
 
