@@ -60,8 +60,6 @@ func init() {
 
 // setupMain ... for this main package only
 func setupMain() *cli.Command {
-	subcommands.InitHelp()
-
 	defaults := subcommands.NewApp(clientIdentifier, gitCommit, "the Aquachain command line interface")
 	this_app = &cli.Command{
 		Name:                       defaults.Name,
@@ -88,7 +86,7 @@ func setupMain() *cli.Command {
 			os.Exit(1)
 			return s
 		},
-		Before:         beforeFunc,
+
 		After:          afterFunc,
 		DefaultCommand: "consoledefault",
 		Commands: append([]*cli.Command{
@@ -97,8 +95,6 @@ func setupMain() *cli.Command {
 		}, subcommands.Subcommands()...),
 		// HideHelpCommand: true,
 		HideVersion: false,
-
-		Copyright: "Copyright 2018-2025 The Aquachain Authors",
 	}
 	{ // add and sort flags
 		app := this_app
@@ -110,10 +106,19 @@ func setupMain() *cli.Command {
 	}
 	return this_app
 }
+func init() {
+
+	// re-init beforeFuncs
+	subcommands.BeforeNodeFunc = beforeFunc
+	// consoledefault.Before = beforeFunc
+	subcommands.SubcommandByName("console").Before = beforeFunc
+	subcommands.SubcommandByName("daemon").Before = beforeFunc
+}
 
 var consoledefault = &cli.Command{
 	Name:  "consoledefault",
 	Usage: "Start full interactive console",
+	// Before: subcommands.BeforeNodeFunc,
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		x := subcommands.SubcommandByName("console")
 		if x.Root() == nil {
@@ -124,7 +129,8 @@ var consoledefault = &cli.Command{
 		log.Info("running consoledefault", "args", args, "args2", args2, "osargs", os.Args)
 		return x.Run(ctx, args) // no subcommand given so we know all the args are flags :)
 	},
-	Flags: subcommands.SubcommandByName("console").Flags,
+	Hidden: true,
+	// Flags: subcommands.SubcommandByName("console").Flags,
 }
 
 // afterFunc only for this main package
@@ -146,14 +152,20 @@ func isNodeFunc(subcmd string) bool {
 
 // beforeFunc only for this main package
 func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+	println("BEFOREFUNC")
+	debug.PrintStack()
 	if mainsubcommand != "" {
-		return ctx, fmt.Errorf("beforeFunc called twice")
+		return ctx, fmt.Errorf("beforeFunc called twice, first=%v, next=%v/%v", mainsubcommand, cmd.Args().First(), cmd.Name)
 	}
 	mainsubcommand = cmd.Args().First()
 	if mainsubcommand == "" {
-		mainsubcommand = consoledefault.Name
+		mainsubcommand = cmd.Name
 	}
-	if cmd.Command(mainsubcommand) == nil {
+	if cmd.Root() == nil {
+		return ctx, fmt.Errorf("no root command found")
+	}
+	if cmd.Root().Command(mainsubcommand) == nil {
+
 		return ctx, fmt.Errorf("subcommand %s not found", mainsubcommand)
 	}
 	// if we are not running a node command, we dont need to do anything more here

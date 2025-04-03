@@ -69,6 +69,8 @@ func Subcommands() []*cli.Command {
 	}
 }
 
+var BeforeNodeFunc cli.BeforeFunc
+
 func SubcommandByName(s string) *cli.Command {
 	for _, c := range Subcommands() {
 		if c.Name == s {
