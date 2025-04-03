@@ -19,6 +19,7 @@ package clique
 import (
 	"bytes"
 	"encoding/json"
+	"strings"
 
 	lru "github.com/hashicorp/golang-lru"
 	"gitlab.com/aquachain/aquachain/aquadb"
@@ -56,10 +57,20 @@ type Snapshot struct {
 	Tally   map[common.Address]Tally    `json:"tally"`   // Current vote tally to avoid recalculating
 }
 
+type SignerList []common.Address
+
+func (s SignerList) String() string {
+	var x = make([]string, len(s))
+	for i, signer := range s {
+		x[i] = signer.Hex()
+	}
+	return strings.Join(x, ",")
+}
+
 // newSnapshot creates a new snapshot with the specified startup parameters. This
 // method does not initialize the set of recent signers, so only ever use if for
 // the genesis block.
-func newSnapshot(config *params.CliqueConfig, sigcache *lru.ARCCache, number uint64, hash common.Hash, signers []common.Address) *Snapshot {
+func newSnapshot(config *params.CliqueConfig, sigcache *lru.ARCCache, number uint64, hash common.Hash, signers SignerList) *Snapshot {
 	snap := &Snapshot{
 		config:   config,
 		sigcache: sigcache,
