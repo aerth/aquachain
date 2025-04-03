@@ -144,7 +144,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	if _, _, _, err := core.ApplyMessage(evm, msg, gaspool); err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
-	if logs := rlpHash(TODOVER, statedb.Logs()); logs != common.Hash(post.Logs) {
+	if logs := types.MustRlpHash(TODOVER, statedb.Logs()); logs != common.Hash(post.Logs) {
 		return statedb, fmt.Errorf("post state logs hash mismatch: got %x, want %x", logs, post.Logs)
 	}
 	root, _ := statedb.Commit(config.IsEIP158(block.Number()))

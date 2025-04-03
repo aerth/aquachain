@@ -28,6 +28,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common/math"
 	"gitlab.com/aquachain/aquachain/core"
 	"gitlab.com/aquachain/aquachain/core/state"
+	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/core/vm"
 	"gitlab.com/aquachain/aquachain/crypto"
 	"gitlab.com/aquachain/aquachain/params"
@@ -109,7 +110,7 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 	if root := statedb.IntermediateRoot(false); root != t.json.PostStateRoot {
 		return fmt.Errorf("post state root mismatch, got %x, want %x", root, t.json.PostStateRoot)
 	}
-	if logs := rlpHash(TODOVER, statedb.Logs()); logs != common.Hash(t.json.Logs) {
+	if logs := types.MustRlpHash(TODOVER, statedb.Logs()); logs != common.Hash(t.json.Logs) {
 		return fmt.Errorf("post state logs hash mismatch: got %x, want %x", logs, t.json.Logs)
 	}
 	return nil
