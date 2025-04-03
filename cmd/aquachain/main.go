@@ -55,6 +55,7 @@ var this_app *cli.Command
 func init() {
 	// main package initialize the buildinfo with values from Makefile/-X linker flags
 	subcommands.SetBuildInfo(gitCommit, buildDate, gitTag, clientIdentifier)
+	log.HandleSignals()
 }
 
 // setupMain ... for this main package only
