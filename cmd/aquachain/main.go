@@ -23,7 +23,6 @@ import (
 	"os"
 	"os/user"
 	"runtime"
-	"sort"
 	"time"
 
 	logpkg "log"
@@ -68,6 +67,7 @@ func setupMain() *cli.Command {
 		EnableShellCompletion:      defaults.EnableShellCompletion,
 		ShellCompletionCommandName: defaults.ShellCompletionCommandName,
 		Suggest:                    defaults.Suggest,
+		Hidden:                     true,
 		Flags: append([]cli.Flag{
 			aquaflags.NoEnvFlag,
 			aquaflags.DoitNowFlag,
@@ -96,14 +96,14 @@ func setupMain() *cli.Command {
 		// HideHelpCommand: true,
 		HideVersion: false,
 	}
-	{ // add and sort flags
-		app := this_app
-		// app.Flags = append(app.Flags, debug.Flags...)
-		app.Flags = append(app.Flags, aquaflags.NodeFlags...)
-		app.Flags = append(app.Flags, aquaflags.RPCFlags...)
-		app.Flags = append(app.Flags, aquaflags.ConsoleFlags...)
-		sort.Sort((cli.FlagsByName)(this_app.Flags))
-	}
+	// { // add and sort flags
+	// 	app := this_app
+	// 	// app.Flags = append(app.Flags, debug.Flags...)
+	// 	app.Flags = append(app.Flags, aquaflags.NodeFlags...)
+	// 	app.Flags = append(app.Flags, aquaflags.RPCFlags...)
+	// 	app.Flags = append(app.Flags, aquaflags.ConsoleFlags...)
+	// 	sort.Sort((cli.FlagsByName)(this_app.Flags))
+	// }
 	return this_app
 }
 func init() {

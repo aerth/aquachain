@@ -620,7 +620,7 @@ var (
 	// The app that holds all commands and flags.
 	// app = NewApp(gitCommit, "the aquachain command line interface")
 	// flags that configure the node
-	nodeFlags = []cli.Flag{
+	NodeFlags = [...]cli.Flag{
 		// DoitNowFlag,
 		IdentityFlag,
 		UnlockedAccountFlag,
@@ -685,7 +685,7 @@ var (
 		// ChainFlag,
 	}
 
-	rpcFlags = []cli.Flag{
+	RPCFlags = [...]cli.Flag{
 		RPCEnabledFlag,
 		RPCUnlockFlag,
 		RPCCORSDomainFlag,
@@ -714,8 +714,8 @@ var (
 		Value: "",
 		Usage: "SOCKS5 proxy for outgoing RPC connections (eg: -socks socks5h://localhost:1080)",
 	}
-	consoleFlags = []cli.Flag{JavascriptDirectoryFlag, ExecFlag, PreloadJSFlag, SocksClientFlag}
-	daemonFlags  = append(nodeFlags, rpcFlags...)
+	ConsoleFlags = []cli.Flag{JavascriptDirectoryFlag, ExecFlag, PreloadJSFlag, SocksClientFlag}
+	DaemonFlags  = append(NodeFlags[:], RPCFlags[:]...)
 )
 
 var ConfigFileFlag = &cli.StringFlag{
@@ -724,8 +724,8 @@ var ConfigFileFlag = &cli.StringFlag{
 }
 
 var (
-	NodeFlags    = nodeFlags
-	RPCFlags     = rpcFlags
-	ConsoleFlags = consoleFlags
-	DaemonFlags  = daemonFlags
+// NodeFlags    = nodeFlags
+// RPCFlags     = rpcFlags
+// ConsoleFlags = consoleFlags
+// DaemonFlags  = daemonFlags
 )
