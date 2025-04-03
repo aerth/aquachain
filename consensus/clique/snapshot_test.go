@@ -58,7 +58,14 @@ func (ap *testerAccountPool) sign(header *types.Header, signer string) {
 		ap.accounts[signer], _ = crypto.GenerateKey()
 	}
 	// Sign the header and embed the signature in extra data
-	sig, _ := crypto.Sign(sigHash(header).Bytes(), ap.accounts[signer])
+	sighash, err := sigHash(header)
+	if err != nil {
+		panic(err.Error())
+	}
+	sig, err := crypto.Sign(sighash.Bytes(), ap.accounts[signer])
+	if err != nil {
+		panic(err.Error())
+	}
 	copy(header.Extra[len(header.Extra)-65:], sig)
 }
 

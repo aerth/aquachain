@@ -374,7 +374,7 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 			if err := c.VerifyHeader(chain, startgenesis, false); err != nil {
 				return nil, err
 			}
-			signers := make([]common.Address, (len(startgenesis.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			signers := make(SignerList, (len(startgenesis.Extra)-extraVanity-extraSeal)/common.AddressLength)
 			for i := 0; i < len(signers); i++ {
 				copy(signers[i][:], startgenesis.Extra[extraVanity+i*common.AddressLength:])
 			}
