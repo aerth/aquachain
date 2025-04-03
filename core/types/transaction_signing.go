@@ -55,6 +55,9 @@ func MakeSigner(config *params.ChainConfig, blockNumber *big.Int) Signer {
 
 // SignTx signs the transaction using the given signer and private key
 func SignTx(tx *Transaction, s Signer, prv *btcec.PrivateKey) (*Transaction, error) {
+	if tx == nil {
+		return nil, errors.New("transaction is nil")
+	}
 	h := s.Hash(tx)
 	sig, err := crypto.Sign(h[:], prv)
 	if err != nil {
@@ -73,6 +76,9 @@ func SignTx(tx *Transaction, s Signer, prv *btcec.PrivateKey) (*Transaction, err
 	if from != expectfrom {
 		return nil, fmt.Errorf("SignTx: sender mismatch %02x != %02x", from, expectfrom)
 	}
+	if x := tx.Value(); x != nil && x.Sign() < 0 {
+		return signed, errors.New("negative value")
+	}
 	return signed, err
 }
 
@@ -84,6 +90,9 @@ func SignTx(tx *Transaction, s Signer, prv *btcec.PrivateKey) (*Transaction, err
 // signing method. The cache is invalidated if the cached signer does
 // not match the signer used in the current call.
 func Sender(signer Signer, tx *Transaction) (common.Address, error) {
+	if tx == nil {
+		return common.Address{}, errors.New("transaction is nil")
+	}
 	if sc := tx.from.Load(); sc != nil {
 		sigcache, ok := sc.(sigCache)
 		if !ok {
@@ -188,7 +197,7 @@ func (s EIP155Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
 func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
-	return rlpHash(1, []interface{}{
+	return MustRlpHash(1, []interface{}{
 		tx.data.AccountNonce,
 		tx.data.Price,
 		tx.data.GasLimit,
@@ -240,7 +249,7 @@ func (fs FrontierSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v *
 // Hash returns the hash to be signed by the sender.
 // It does not uniquely identify the transaction.
 func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
-	return rlpHash(1, []interface{}{
+	return MustRlpHash(1, []interface{}{
 		tx.data.AccountNonce,
 		tx.data.Price,
 		tx.data.GasLimit,
