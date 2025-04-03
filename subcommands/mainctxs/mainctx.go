@@ -16,6 +16,8 @@ func Main() context.Context {
 	return mainctx
 }
 func MainCancelCause() context.CancelCauseFunc {
+	log.HandleSignals()                          // caller asking for it, so lets activate it here to save a step
+	log.RegisterCancelCause(mainctx, maincancel) // when common/log.Fatal is called, this will be called
 	return maincancel
 }
 
@@ -59,10 +61,7 @@ func mkmainctx() (context.Context, context.CancelCauseFunc) {
 		cancel1: cancelCause,
 		cancels: []context.CancelFunc{maybenoop, stopSignals},
 	}
-
-	// initialize log package's mainctx and maincancel for log.GracefulShutdown
-	log.RegisterCancelCause(c, multi.CancelCause) // when common/log.Fatal is called, this will be called
-	return c, cancelCause
+	return c, multi.CancelCause
 }
 
 // helper to free all the resources attached to contexts

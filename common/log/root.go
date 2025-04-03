@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/go-stack/stack"
+
 	"gitlab.com/aquachain/aquachain/common/sense"
 )
 
@@ -129,6 +130,7 @@ func Error(msg string, ctx ...interface{}) {
 
 // Crit is a convenient alias for Root().Crit
 func Crit(msg string, ctx ...interface{}) {
+	cancelcausefunc(fmt.Errorf("%s", msg)) // just incase it wasnt already cancelled
 	if root != nil {
 		root.write(msg, LvlCrit, ctx)
 	} else {
@@ -151,7 +153,26 @@ func GracefulShutdownf(causef string, args ...any) {
 	GracefulShutdown(Errorf(causef, args...))
 }
 
+// store mainctx here
+
 var mainctx context.Context
+var alreadyhandled bool = true // sane default for use as a library
+var cancelcausefunc context.CancelCauseFunc = func(cause error) {
+	Root().Warn("main shutdown function not registered, not exiting", "cause", cause)
+}
+
+// RegisterCancelCause registers a CancelCause func to be called when a fatal error is logged (GracefulShutdown, Crit, etc)
+func RegisterCancelCause(ctx context.Context, f context.CancelCauseFunc) {
+	if alreadyhandled {
+		panic("already registered")
+	}
+	mainctx = ctx
+	cancelcausefunc = f
+}
+
+func HandleSignals() {
+	alreadyhandled = false // we are in cmd/aquachain etc using mainctxs.CancelCause and log.GracefulShutdown is real
+}
 
 func TranslateFatalError(err error) error {
 	if mainctx != nil && context.Cause(mainctx) == context.Canceled && err == context.Canceled {
@@ -166,13 +187,17 @@ func TranslateFatalError(err error) error {
 // After 10 seconds the process should panic
 func GracefulShutdown(cause error) {
 	if root != nil {
-		root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause})
+		root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "caller1", Caller(1), "caller2", Caller(2)})
 	} else {
 		println("fatal: ", cause.Error())
 		if sense.EnvBool("DEBUG") {
 			println("stack trace requsted (DEBUG=1)...")
 			debug.PrintStack()
 		}
+	}
+	if alreadyhandled || testloghandler != nil { // or if testing
+		Warn("graceful shutdown requested", "cause", cause)
+		return
 	}
 	cancelcausefunc(cause) // this should shutdown the stack
 	go notifyGracefulShutdown(cause)
@@ -189,14 +214,6 @@ func notifyGracefulShutdown(cause error) {
 }
 
 var Caller = stack.Caller
-var cancelcausefunc context.CancelCauseFunc = func(cause error) {
-	Root().Crit("main shutdown function not registered, exiting", "cause", cause)
-}
 
-func RegisterCancelCause(ctx context.Context, f context.CancelCauseFunc) {
-	mainctx = ctx
-	cancelcausefunc = f
-}
-
-// Errorf can be swapped for a caller-aware version
+// Errorf can be swapped for a caller-aware version (TODO)
 var Errorf = fmt.Errorf

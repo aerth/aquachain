@@ -23,8 +23,6 @@ import (
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
-var mainctx, maincancel = mainctxs.Main(), mainctxs.MainCancelCause()
-
 // SetBuildInfo also calls 'buildinfo.SetBuildInfo'
 //
 // TODO: deduplicate by using buildinfo.BuildInfo in this package
@@ -100,7 +98,7 @@ func dumpConfig(ctx context.Context, cmd *cli.Command) error {
 	if cmd.String("config") == "none" {
 		opts = append(opts, NoPreviousConfig)
 	}
-	_, cfg := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, maincancel, opts...)
+	_, cfg := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, mainctxs.MainCancelCause(), opts...)
 	comment := ""
 
 	if cfg.Aqua.Genesis != nil {
@@ -124,8 +122,8 @@ func MakeFullNode(ctx context.Context, cmd *cli.Command) *node.Node {
 	gitCommit := buildinfo.GitCommit
 	clientIdentifier := buildinfo.ClientIdentifier
 
-	stack, cfg := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, maincancel)
-	RegisterAquaService(mainctx, stack, cfg.Aqua, cfg.Node.NodeName())
+	stack, cfg := MakeConfigNode(ctx, cmd, gitCommit, clientIdentifier, mainctxs.MainCancelCause())
+	RegisterAquaService(mainctxs.Main(), stack, cfg.Aqua, cfg.Node.NodeName())
 
 	// Add the Aquachain Stats daemon if requested.
 	if cfg.Aquastats.URL != "" {
@@ -195,7 +193,7 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-mainctx.Done():
+			case <-mainctxs.Main().Done():
 				return nil
 			case <-time.After(time.Second):
 			}
@@ -245,7 +243,7 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 				select {
 				case <-ctx.Done():
 					return
-				case <-mainctx.Done():
+				case <-mainctxs.Main().Done():
 					return
 				case event := <-events:
 
