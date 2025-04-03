@@ -183,17 +183,15 @@ func (c *Config) IPCEndpoint() string {
 		return `\\.\pipe\` + c.IPCPath
 	}
 	// Resolve names into the data directory full paths otherwise
-	if filepath.Base(c.IPCPath) == c.IPCPath {
-		if c.DataDir == "" {
-			log.Warn("No datadir set, IPCPath will be ephemeral")
-			dir, err := os.MkdirTemp("", "aquachain-")
-			if err != nil {
-				log.GracefulShutdown(fmt.Errorf("mkdirtemp: %v", err))
-
-			}
+	if filepath.Base(c.IPCPath) == c.IPCPath { // eg: "aquachain.ipc"
+		if c.DataDir != "" {
+			return filepath.Join(c.DataDir, c.IPCPath)
+		}
+		log.Warn("No datadir set, IPCPath will be ephemeral")
+		dir, err := os.MkdirTemp("", "aquachain-") // eg: /tmp/aquachain-1234567890/
+		if err == nil {
 			return filepath.Join(dir, c.IPCPath)
 		}
-		return filepath.Join(c.DataDir, c.IPCPath)
 	}
 	return c.IPCPath
 }
