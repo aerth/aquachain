@@ -19,7 +19,6 @@ package rlp
 import (
 	"bytes"
 	"io"
-	"reflect"
 	"testing"
 )
 
@@ -53,7 +52,7 @@ func TestCountValues(t *testing.T) {
 		if count != test.count {
 			t.Errorf("test %d: count mismatch, got %d want %d\ninput: %s", i, count, test.count, test.input)
 		}
-		if !reflect.DeepEqual(err, test.err) {
+		if err != test.err {
 			t.Errorf("test %d: err mismatch, got %q want %q\ninput: %s", i, err, test.err, test.input)
 		}
 	}

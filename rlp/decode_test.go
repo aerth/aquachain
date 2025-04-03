@@ -701,6 +701,7 @@ func ExampleDecode() {
 	}
 
 	var s example
+	s.private = 0 // only for lint
 	err := Decode(bytes.NewReader(input), &s)
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
