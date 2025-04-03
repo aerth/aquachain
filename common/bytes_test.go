@@ -19,41 +19,53 @@ package common
 import (
 	"bytes"
 	"testing"
-
-	checker "gopkg.in/check.v1"
 )
 
 type BytesSuite struct{}
 
-var _ = checker.Suite(&BytesSuite{})
+func TestBytes(t *testing.T) {
+	suite := &BytesSuite{}
+	suite.TestCopyBytes(t)
+	suite.TestLeftPadBytes(t)
+	suite.TestRightPadBytes(t)
+}
 
-func (s *BytesSuite) TestCopyBytes(c *checker.C) {
+func (s *BytesSuite) TestCopyBytes(t *testing.T) {
 	data1 := []byte{1, 2, 3, 4}
 	exp1 := []byte{1, 2, 3, 4}
 	res1 := CopyBytes(data1)
-	c.Assert(res1, checker.DeepEquals, exp1)
+	if !bytes.Equal(res1, exp1) {
+		t.Errorf("Expected %x got %x", exp1, res1)
+	}
 }
 
-func (s *BytesSuite) TestLeftPadBytes(c *checker.C) {
+func (s *BytesSuite) TestLeftPadBytes(t *testing.T) {
 	val1 := []byte{1, 2, 3, 4}
 	exp1 := []byte{0, 0, 0, 0, 1, 2, 3, 4}
 
 	res1 := LeftPadBytes(val1, 8)
 	res2 := LeftPadBytes(val1, 2)
 
-	c.Assert(res1, checker.DeepEquals, exp1)
-	c.Assert(res2, checker.DeepEquals, val1)
+	if !bytes.Equal(res1, exp1) {
+		t.Errorf("Expected %x got %x", exp1, res1)
+	}
+	if !bytes.Equal(res2, val1) {
+		t.Errorf("Expected %x got %x", val1, res2)
+	}
 }
 
-func (s *BytesSuite) TestRightPadBytes(c *checker.C) {
+func (s *BytesSuite) TestRightPadBytes(t *testing.T) {
 	val := []byte{1, 2, 3, 4}
 	exp := []byte{1, 2, 3, 4, 0, 0, 0, 0}
 
 	resstd := RightPadBytes(val, 8)
 	resshrt := RightPadBytes(val, 2)
-
-	c.Assert(resstd, checker.DeepEquals, exp)
-	c.Assert(resshrt, checker.DeepEquals, val)
+	if !bytes.Equal(resstd, exp) {
+		t.Errorf("Expected %x got %x", exp, resstd)
+	}
+	if !bytes.Equal(resshrt, val) {
+		t.Errorf("Expected %x got %x", val, resstd)
+	}
 }
 
 func TestFromHex(t *testing.T) {
