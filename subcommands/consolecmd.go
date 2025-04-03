@@ -37,27 +37,12 @@ import (
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
 )
 
-// // ATM the url is left to the user and deployment to
-//
-//	aquaflags.JSpathFlag = &cli.aquaflags.StringFlag{
-//		Name:  "jspath",
-//		Usage: "JavaScript root path for `loadScript`",
-//		Value: ".",
-//	}
-
-var (
-	daemonFlags  = aquaflags.DaemonFlags
-	consoleFlags = aquaflags.ConsoleFlags
-	nodeFlags    = aquaflags.NodeFlags
-	rpcFlags     = aquaflags.RPCFlags
-)
-
 var (
 	daemonCommand = &cli.Command{
 		Action:      MigrateFlags(daemonStart),
 		Name:        "daemon",
 		Before:      BeforeNodeFunc,
-		Flags:       daemonFlags,
+		Flags:       aquaflags.DaemonFlags,
 		Usage:       "Start a full node",
 		Category:    "CONSOLE COMMANDS",
 		Description: "",
@@ -68,7 +53,7 @@ var (
 		Before:   BeforeNodeFunc,
 		Name:     "console",
 		Usage:    "Start an interactive JavaScript environment",
-		Flags:    append(consoleFlags, daemonFlags...),
+		Flags:    append(aquaflags.ConsoleFlags, aquaflags.DaemonFlags...),
 		Category: "CONSOLE COMMANDS",
 		Description: `
 The Aquachain console is an interactive shell for the JavaScript runtime environment
@@ -81,7 +66,7 @@ See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Console.`,
 		Name:      "attach",
 		Usage:     "Start an interactive JavaScript environment (connect to node)",
 		ArgsUsage: "[endpoint]",
-		Flags:     append(consoleFlags, aquaflags.DataDirFlag),
+		Flags:     append(aquaflags.ConsoleFlags, aquaflags.DataDirFlag),
 		Category:  "CONSOLE COMMANDS",
 		Description: `
 The Aquachain console is an interactive shell for the JavaScript runtime environment
@@ -95,8 +80,8 @@ This command allows to open a console on a running aquachain node.`,
 		Name:      "js",
 		Usage:     "Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
-		Flags:     append(nodeFlags, consoleFlags...),
-		Category:  "CONSOLE COMMANDS",
+		// Flags:     append(nodeFlags, consoleFlags...),
+		Category: "CONSOLE COMMANDS",
 		Description: `
 The JavaScript VM exposes a node admin interface as well as the Ðapp
 JavaScript API. See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Console`,

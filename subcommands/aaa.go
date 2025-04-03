@@ -85,7 +85,7 @@ var dumpConfigCommand = &cli.Command{
 	Name:        "dumpconfig",
 	Usage:       "Show configuration values",
 	ArgsUsage:   "",
-	Flags:       append(nodeFlags, rpcFlags...),
+	Flags:       append(aquaflags.NodeFlags[:], aquaflags.RPCFlags[:]...),
 	Category:    "MISCELLANEOUS COMMANDS",
 	Description: `The dumpconfig command shows configuration values.`,
 }
