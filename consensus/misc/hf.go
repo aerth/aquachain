@@ -27,7 +27,7 @@ import (
 //
 // These functions are called from, and new ones must be added to:
 // 'Process' in core/state_processor.go
-// 'commitNewWork' in opt/miner/worker.go
+// 'commitNewWork' in core/miner/worker.go
 // and for testing, 'GenerateChain' in core/chain_makers.go
 
 // ApplyHardFork4 sets eth presale balances to zero

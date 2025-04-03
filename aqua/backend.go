@@ -47,7 +47,7 @@ import (
 	"gitlab.com/aquachain/aquachain/internal/aquaapi"
 	"gitlab.com/aquachain/aquachain/node"
 
-	"gitlab.com/aquachain/aquachain/opt/miner"
+	"gitlab.com/aquachain/aquachain/core/miner"
 	"gitlab.com/aquachain/aquachain/p2p"
 	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/rlp"
