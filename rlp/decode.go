@@ -266,6 +266,10 @@ func decodeBigInt(s *Stream, val reflect.Value) error {
 		return wrapStreamError(ErrCanonInt, val.Type())
 	}
 	i.SetBytes(b)
+	if i.Sign() < 0 {
+		return &decodeError{msg: "became a negative integer", typ: val.Type()}
+	}
+
 	return nil
 }
 
