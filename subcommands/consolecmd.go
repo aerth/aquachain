@@ -56,6 +56,7 @@ var (
 	daemonCommand = &cli.Command{
 		Action:      MigrateFlags(daemonStart),
 		Name:        "daemon",
+		Before:      BeforeNodeFunc,
 		Flags:       daemonFlags,
 		Usage:       "Start a full node",
 		Category:    "CONSOLE COMMANDS",
@@ -64,6 +65,7 @@ var (
 	consoleCommand = &cli.Command{
 		Action: MigrateFlags(localConsole),
 		// Action:   localConsole,
+		Before:   BeforeNodeFunc,
 		Name:     "console",
 		Usage:    "Start an interactive JavaScript environment",
 		Flags:    append(consoleFlags, daemonFlags...),

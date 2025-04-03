@@ -149,7 +149,7 @@ func GetFirstEnv(names ...string) string {
 	DotEnv()
 	for _, name := range names {
 		x := os.Getenv(name) // should be the only os.Getenv call.
-		if len(names) == 0 || x != "" {
+		if len(names) == 1 || x != "" {
 			return x
 		}
 	}
