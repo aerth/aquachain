@@ -71,7 +71,7 @@ endif
 ifeq (1,$(cgo))
 GO_FLAGS += -installsuffix cgo
 LINKER_FLAGS += -linkmode external -extldflags -static
-tags += cgo
+tags := ${tags} cgo
 endif
 
 TAGS64 ?= $(shell printf "$(tags)"|base64 | tr -d '\r\n' | tr -d '\n' || true)

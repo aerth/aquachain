@@ -19,6 +19,7 @@ package params
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 )
 
 // regenerate to synchronize /VERSION file with below values
@@ -58,10 +59,11 @@ func VersionWithCommit(gitCommit string) string {
 var buildtags string
 
 func BuildTags() string {
+	buildtags = strings.TrimSpace(buildtags)
 	if buildtags == "" {
 		return ""
 	}
-	b, err := base64.RawStdEncoding.DecodeString(buildtags)
+	b, err := base64.StdEncoding.DecodeString(buildtags)
 	if err != nil {
 		panic(err)
 	}
