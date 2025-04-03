@@ -37,6 +37,8 @@ import (
 	"gitlab.com/aquachain/aquachain/common/sense"
 )
 
+var PrintStack = debug.PrintStack
+
 var Handler = new(HandlerT)
 
 // HandlerT implements the debugging API.
