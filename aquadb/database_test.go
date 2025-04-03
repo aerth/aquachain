@@ -18,7 +18,6 @@ package aquadb_test
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"strconv"
 	"sync"
@@ -160,52 +159,56 @@ func testParallelPutGet(db aquadb.Database, t *testing.T) {
 
 	pending.Add(n)
 	for i := 0; i < n; i++ {
-		go func(key string) {
+		go func(t0 *testing.T, key string) {
 			defer pending.Done()
 			err := db.Put([]byte(key), []byte("v"+key))
 			if err != nil {
-				panic("put failed: " + err.Error())
+				t0.Error("put failed: " + err.Error())
 			}
-		}(strconv.Itoa(i))
+		}(t, strconv.Itoa(i))
 	}
 	pending.Wait()
 
 	pending.Add(n)
 	for i := 0; i < n; i++ {
-		go func(key string) {
+		go func(t0 *testing.T, key string) {
 			defer pending.Done()
 			data, err := db.Get([]byte(key))
 			if err != nil {
-				panic("get failed: " + err.Error())
+				t0.Error("get failed: " + err.Error())
+				return
 			}
 			if !bytes.Equal(data, []byte("v"+key)) {
-				panic(fmt.Sprintf("get failed, got %q expected %q", data, []byte("v"+key)))
+				t0.Errorf("get failed, got %q expected %q", data, []byte("v"+key))
+				return
 			}
-		}(strconv.Itoa(i))
+		}(t, strconv.Itoa(i))
 	}
 	pending.Wait()
 
 	pending.Add(n)
 	for i := 0; i < n; i++ {
-		go func(key string) {
+		go func(t0 *testing.T, key string) {
 			defer pending.Done()
 			err := db.Delete([]byte(key))
 			if err != nil {
-				panic("delete failed: " + err.Error())
+				t0.Error("delete failed: " + err.Error())
+				return
 			}
-		}(strconv.Itoa(i))
+		}(t, strconv.Itoa(i))
 	}
 	pending.Wait()
 
 	pending.Add(n)
 	for i := 0; i < n; i++ {
-		go func(key string) {
+		go func(t0 *testing.T, key string) {
 			defer pending.Done()
 			_, err := db.Get([]byte(key))
 			if err == nil {
-				panic("get succeeded")
+				t0.Error("get succeeded")
+				return
 			}
-		}(strconv.Itoa(i))
+		}(t, strconv.Itoa(i))
 	}
 	pending.Wait()
 }
