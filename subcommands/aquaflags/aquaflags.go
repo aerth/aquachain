@@ -193,12 +193,10 @@ var (
 		Usage:    "Enable so-called fast syncing through state downloads (disabled by default)",
 		Category: "SYNC",
 	}
-	tmpdefaultSyncMode = aqua.DefaultConfig.SyncMode
-
 	SyncModeFlag = &cli.StringFlag{
 		Name:  "syncmode",
 		Usage: `Blockchain sync mode ("fast", "full")`,
-		Value: tmpdefaultSyncMode.String(),
+		Value: "full",
 		Action: func(ctx context.Context, cmd *cli.Command, v string) error {
 			if v != "fast" && v != "full" && v != "offline" {
 				return fmt.Errorf("invalid sync mode: %q", v)
