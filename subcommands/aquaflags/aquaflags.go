@@ -19,6 +19,8 @@ import (
 	"gitlab.com/aquachain/aquachain/params"
 )
 
+const importantCategory = "important"
+
 // type DirectoryFlag = utils.DirectoryFlag // TODO remove these type aliases
 // type DirectoryString = utils.DirectoryString
 
@@ -66,6 +68,7 @@ var (
 			}
 			return nil
 		},
+		Category: importantCategory,
 	}
 	KeyStoreDirFlag = &cli.StringFlag{
 		Name:   "keystore",
@@ -87,6 +90,7 @@ var (
 			}
 			return nil
 		},
+		Category: importantCategory,
 	}
 	ChainFlag = &cli.StringFlag{
 		Name:  "chain",
@@ -100,10 +104,12 @@ var (
 			// cmd.Set("chain", v)
 			return nil
 		},
+		Category: importantCategory,
 	}
 	AlertModeFlag = &cli.BoolFlag{
-		Name:  "alerts",
-		Usage: "Enable alert notifications (requires env $ALERT_TOKEN, $ALERT_PLATFORM, and $ALERT_CHANNEL)",
+		Name:     "alerts",
+		Usage:    "Enable alert notifications (requires env $ALERT_TOKEN, $ALERT_PLATFORM, and $ALERT_CHANNEL)",
+		Category: importantCategory,
 	}
 	TestnetFlag = &cli.BoolFlag{
 		Name:  "testnet",
@@ -708,17 +714,19 @@ var NoEnvFlag = &cli.BoolFlag{Name: "noenv", Usage: "Skip loading existing .env 
 
 var (
 	SocksClientFlag = &cli.StringFlag{
-		Name:  "socks",
-		Value: "",
-		Usage: "SOCKS5 proxy for outgoing RPC connections (eg: -socks socks5h://localhost:1080)",
+		Name:     "socks",
+		Value:    "",
+		Usage:    "SOCKS5 proxy for outgoing RPC connections (eg: -socks socks5h://localhost:1080)",
+		Category: "RPC CLIENT",
 	}
 	ConsoleFlags = []cli.Flag{JavascriptDirectoryFlag, ExecFlag, PreloadJSFlag, SocksClientFlag}
 	DaemonFlags  = append(NodeFlags[:], RPCFlags[:]...)
 )
 
 var ConfigFileFlag = &cli.StringFlag{
-	Name:  "config",
-	Usage: "TOML configuration file. NEW: In case of multiple instances, use -config=none to disable auto-reading available config files",
+	Name:     "config",
+	Usage:    "TOML configuration file. NEW: In case of multiple instances, use -config=none to disable auto-reading available config files",
+	Category: importantCategory,
 }
 
 var (

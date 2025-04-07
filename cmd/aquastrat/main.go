@@ -74,7 +74,7 @@ func main() {
 	)
 	app.Action = loopit
 	_ = filepath.Join
-	app.Flags = append(debug.Flags, []cli.Flag{
+	app.Flags = append(debug.LogFlags, []cli.Flag{
 		&cli.StringFlag{
 			Value:    filepath.Join(node.DefaultDatadirByChain(Config), "aquachain.ipc"),
 			Name:     "rpc",

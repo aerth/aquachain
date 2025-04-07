@@ -45,11 +45,12 @@ const (
 	clientIdentifier = "aquachain" // Client identifier to advertise over the network
 )
 
+// set via linker flags
 var (
-	// Git SHA1 commit hash and timestamp of the release (set via linker flags)
-	gitCommit, buildDate, gitTag string
+	gitCommit string // short sha1
+	buildDate string
+	gitTag    string // git tag
 )
-var this_app *cli.Command
 
 func init() {
 	// main package initialize the buildinfo with values from Makefile/-X linker flags
@@ -57,10 +58,18 @@ func init() {
 	log.HandleSignals()
 }
 
+var GlobalFlags = append([]cli.Flag{
+	aquaflags.ChainFlag,
+	aquaflags.DoitNowFlag,
+	aquaflags.ConfigFileFlag,
+	aquaflags.DataDirFlag},
+	debug.LogFlags...,
+)
+
 // setupMain ... for this main package only
 func setupMain() *cli.Command {
 	defaults := subcommands.NewApp(clientIdentifier, gitCommit, "the Aquachain command line interface")
-	this_app = &cli.Command{
+	this_app := &cli.Command{
 		Name:                       defaults.Name,
 		Usage:                      defaults.Usage,
 		Version:                    defaults.Version,
@@ -68,13 +77,14 @@ func setupMain() *cli.Command {
 		ShellCompletionCommandName: defaults.ShellCompletionCommandName,
 		Suggest:                    defaults.Suggest,
 		Hidden:                     true,
-		Flags: append([]cli.Flag{ // "global flags", keep it short
-			aquaflags.NoEnvFlag,
-			aquaflags.DoitNowFlag,
-			aquaflags.ConfigFileFlag,
-			aquaflags.ChainFlag,
-			aquaflags.GCModeFlag,
-		}, debug.Flags...),
+		Flags:                      GlobalFlags,
+		// Flags: append([]cli.Flag{ // "global flags", keep it short
+		// 	aquaflags.NoEnvFlag,
+		// 	aquaflags.DoitNowFlag,
+		// 	aquaflags.ConfigFileFlag,
+		// 	aquaflags.ChainFlag,
+		// 	aquaflags.GCModeFlag,
+		// }, debug.Flags...),
 		SuggestCommandFunc: func(commands []*cli.Command, provided string) string {
 			s := cli.SuggestCommand(commands, provided)
 			// log.Info("running SuggestCommand", "commands", commands, "provided", provided, "suggesting", s)
@@ -153,7 +163,6 @@ func isNodeFunc(subcmd string) bool {
 // beforeFunc only for this main package
 func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	debug.PrintStack()
-	println("BEFOREFUNC RUNNING NOW")
 	if mainsubcommand != "" {
 		return ctx, fmt.Errorf("beforeFunc called twice, first=%v, next=%v/%v", mainsubcommand, cmd.Args().First(), cmd.Name)
 	}
