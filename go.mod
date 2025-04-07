@@ -5,6 +5,8 @@ go 1.24.0
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/aerth/tgun v0.2.0
+	github.com/Microsoft/go-winio v0.6.2
+	github.com/aerth/tgun v0.1.7
 	github.com/btcsuite/btcd/btcec/v2 v2.3.5-0.20250307104530-c7191d2913c7
 	github.com/cespare/cp v1.1.1
 	github.com/davecgh/go-spew v1.1.1
@@ -29,8 +31,6 @@ require (
 	golang.org/x/crypto v0.37.0
 	golang.org/x/net v0.39.0
 	golang.org/x/sys v0.32.0
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
-	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20210326210528-650f7c854440
 )
 

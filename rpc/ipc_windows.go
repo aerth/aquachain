@@ -22,10 +22,10 @@ package rpc
 import (
 	"net"
 
-	"gopkg.in/natefinch/npipe.v2"
+	"github.com/Microsoft/go-winio"
 )
 
 // ipcListen will create a named pipe on the given endpoint.
 func ipcListen(endpoint string) (net.Listener, error) {
-	return npipe.Listen(endpoint)
+	return winio.ListenPipe(endpoint, nil)
 }
