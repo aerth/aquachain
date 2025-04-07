@@ -8,10 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/urfave/cli/v3"
-	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
 )
@@ -23,32 +21,41 @@ var appconfig = struct {
 }{
 	chain: "testnet3",
 }
+var command1 = &cli.Command{
+	Name:  "command1",
+	Usage: "command1 is a test command",
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		fmt.Println("command1 executed")
+		return nil
+	},
+}
+var command2 = &cli.Command{
+	Name:  "command2",
+	Usage: "command2 is a test command",
+	Action: func(ctx context.Context, cmd *cli.Command) error {
+		fmt.Println("command2 executed")
+		return nil
+	},
+}
+
+var GlobalFlags = append([]cli.Flag{
+	aquaflags.ChainFlag,
+	aquaflags.DoitNowFlag,
+	aquaflags.ConfigFileFlag,
+	aquaflags.DataDirFlag},
+	debug.LogFlags...,
+)
 
 func main() {
 	app := &cli.Command{
 		Name:  "newtester",
 		Usage: "newtester is a command line tool for testing",
-		Flags: append([]cli.Flag{
-			aquaflags.ChainFlag,
-			aquaflags.DoitNowFlag,
-			aquaflags.ConfigFileFlag,
-			aquaflags.DataDirFlag}, debug.Flags...),
-		Action: func(ctx context.Context, cmd *cli.Command) error { // cli.ActionFunc
-			for ctx.Err() == nil {
-				log.Infof("reticulating splines (name=%s chain=%s)", cmd.Name, appconfig.chain)
-				select {
-				case <-ctx.Done():
-					return nil
-				case <-time.After(2 * time.Second):
-				}
-			}
-			return nil
-		},
-		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-			appconfig.chain = cmd.String(aquaflags.ChainFlag.Name)
-			return ctx, nil
-		},
-		Commands: []*cli.Command{},
+		Flags: GlobalFlags,
+		// Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+		// 	// appconfig.chain = cmd.String(aquaflags.ChainFlag.Name)
+		// 	return ctx, nil
+		// },
+		Commands: []*cli.Command{command1, command2},
 	}
 
 	ctx, cancelcause := context.WithCancelCause(context.Background())

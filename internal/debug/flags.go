@@ -32,75 +32,98 @@ import (
 
 var (
 	logcolorflag = &cli.BoolFlag{
-		Name:  "color",
-		Usage: "Force colored log output (COLOR env)",
-		Value: sense.EnvBool("COLOR") || (sense.Getenv("TERM") == "xterm" || sense.Getenv("TERM") == "xterm-256color"),
+		Name:     "color",
+		Usage:    "Force colored log output (COLOR env)",
+		Value:    sense.EnvBool("COLOR") || (sense.Getenv("TERM") == "xterm" || sense.Getenv("TERM") == "xterm-256color"),
+		Category: "Logging",
 	}
 	logjsonflag = &cli.BoolFlag{
-		Name:  "jsonlog",
-		Usage: "Log in JSON format, env:JSONLOG=1 (compatible with prettylog, jq, etc.)",
-		Value: sense.EnvBool("JSONLOG"),
+		Name:     "jsonlog",
+		Usage:    "Log in JSON format, env:JSONLOG=1 (compatible with prettylog, jq, etc.)",
+		Value:    sense.EnvBool("JSONLOG"),
+		Category: "Logging",
 	}
 	verbosityFlag = &cli.StringFlag{
-		Name:  "verbosity",
-		Usage: "Logging verbosity: name or number.. 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
-		Value: log.GetUnparsedLevelFromEnv(),
+		Name:     "verbosity",
+		Usage:    "Logging verbosity: name or number.. 0=silent, 1=error, 2=warn, 3=info, 4=debug, 5=detail",
+		Value:    log.GetUnparsedLevelFromEnv(),
+		Category: "Logging",
 	}
 	vmoduleFlag = &cli.StringFlag{
-		Name:  "vmodule",
-		Usage: "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. aqua/*=5,p2p=4), try \"good\" or \"great\" for predefined verbose logging",
-		Value: "",
+		Name:     "vmodule",
+		Usage:    "Per-module verbosity: comma-separated list of <pattern>=<level> (e.g. aqua/*=5,p2p=4), try \"good\" or \"great\" for predefined verbose logging",
+		Value:    "",
+		Category: "Logging",
 	}
 	backtraceAtFlag = &cli.StringFlag{
-		Name:  "backtrace",
-		Usage: "Request a stack trace at a specific logging statement (e.g. \"block.go:271\")",
-		Value: "",
+		Name:     "backtrace",
+		Usage:    "Request a stack trace at a specific logging statement (e.g. \"block.go:271\")",
+		Value:    "",
+		Category: "Debugging",
 	}
 	debugFlag = &cli.BoolFlag{
-		Name:  "debug",
-		Usage: "Prepends log messages with call-site location (file and line number)",
-		Value: sense.EnvBool("DEBUG") || sense.EnvBool("LOG_CALLERS"),
+		Name:     "debug",
+		Usage:    "Highly recommended. Prepends log messages with call-site location (file and line number)",
+		Value:    sense.EnvBool("DEBUG") || sense.EnvBool("LOG_CALLERS"),
+		Category: "Logging",
 	}
 	pprofFlag = &cli.BoolFlag{
-		Name:  "pprof",
-		Usage: "Enable the pprof HTTP server",
+		Name:     "pprof",
+		Usage:    "Enable the pprof HTTP server",
+		Category: "Debugging",
 	}
 	pprofPortFlag = &cli.IntFlag{
-		Name:  "pprofport",
-		Usage: "pprof HTTP server listening port",
-		Value: 6060,
+		Name:     "pprofport",
+		Usage:    "pprof HTTP server listening port",
+		Value:    6060,
+		Category: "Debugging",
 	}
 	pprofAddrFlag = &cli.StringFlag{
-		Name:  "pprofaddr",
-		Usage: "pprof HTTP server listening interface",
-		Value: "127.0.0.1",
+		Name:     "pprofaddr",
+		Usage:    "pprof HTTP server listening interface",
+		Value:    "127.0.0.1",
+		Category: "Debugging",
 	}
 	memprofilerateFlag = &cli.IntFlag{
-		Name:  "memprofilerate",
-		Usage: "Turn on memory profiling with the given rate",
-		Value: int64(runtime.MemProfileRate),
+		Name:     "memprofilerate",
+		Usage:    "Turn on memory profiling with the given rate",
+		Value:    int64(runtime.MemProfileRate),
+		Category: "Debugging",
 	}
 	blockprofilerateFlag = &cli.IntFlag{
-		Name:  "blockprofilerate",
-		Usage: "Turn on block profiling with the given rate",
+		Name:     "blockprofilerate",
+		Usage:    "Turn on block profiling with the given rate",
+		Category: "Debugging",
 	}
 	cpuprofileFlag = &cli.StringFlag{
-		Name:  "cpuprofile",
-		Usage: "Write CPU profile to the given file",
+		Name:     "cpuprofile",
+		Usage:    "Write CPU profile to the given file",
+		Category: "Debugging",
 	}
 	traceFlag = &cli.StringFlag{
-		Name:  "trace",
-		Usage: "Write execution trace to the given file",
+		Name:     "trace",
+		Usage:    "Write execution trace to the given file",
+		Category: "Debugging",
 	}
 )
-
-// Flags holds all command-line flags required for debugging.
-var Flags = []cli.Flag{
+var LogFlags = []cli.Flag{
 	logcolorflag, logjsonflag,
-	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
+	verbosityFlag, vmoduleFlag, debugFlag,
+}
+
+var DebugFlags = []cli.Flag{
+	backtraceAtFlag,
 	pprofFlag, pprofAddrFlag, pprofPortFlag,
 	memprofilerateFlag, blockprofilerateFlag, cpuprofileFlag, traceFlag,
 }
+
+// // Flags holds all command-line flags required for debugging.
+// var Flags = []cli.Flag{
+// 	logcolorflag, logjsonflag,
+// 	verbosityFlag, vmoduleFlag, backtraceAtFlag, debugFlag,
+// 	pprofFlag, pprofAddrFlag, pprofPortFlag,
+// 	memprofilerateFlag, blockprofilerateFlag, cpuprofileFlag, traceFlag,
+// }
 
 func SetupLog(ctx context.Context, cmd *cli.Command) error {
 	if cmd == nil {
