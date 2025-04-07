@@ -24,7 +24,7 @@ import (
 	"net"
 	"time"
 
-	"gopkg.in/natefinch/npipe.v2"
+	"github.com/Microsoft/go-winio"
 )
 
 // This is used if the dialing context has no deadline. It is much smaller than the
@@ -33,12 +33,11 @@ const defaultPipeDialTimeout = 2 * time.Second
 
 // newIPCConnection will connect to a named pipe with the given endpoint as name.
 func newIPCConnection(ctx context.Context, endpoint string) (net.Conn, error) {
-	timeout := defaultPipeDialTimeout
-	if deadline, ok := ctx.Deadline(); ok {
-		timeout = deadline.Sub(time.Now())
-		if timeout < 0 {
-			timeout = 0
-		}
+	ctx, cancel := context.WithTimeout(ctx, defaultPipeDialTimeout)
+	defer cancel()
+	conn, err := winio.DialPipeContext(ctx, endpoint)
+	if err != nil {
+		return nil, err
 	}
-	return npipe.DialTimeout(endpoint, timeout)
+	return conn, nil
 }
