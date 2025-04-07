@@ -53,9 +53,8 @@ func (aqua *Aquachain) startBloomHandlers() {
 		go func() {
 			for {
 				select {
-				case <-aqua.shutdownChan:
+				case <-aqua.ctx.Done():
 					return
-
 				case request := <-aqua.bloomRequests:
 					task := <-request
 					task.Bitsets = make([][]byte, len(task.Sections))

@@ -61,7 +61,7 @@ type Aquachain struct {
 	chainConfig *params.ChainConfig
 
 	// Channel for shutting down the service
-	shutdownChan  chan bool    // Channel for shutting down the aquachain
+	// shutdownChan  chan bool    // Channel for shutting down the aquachain
 	stopDbUpgrade func() error // stop chain db sequential key upgrade
 
 	// Handlers
@@ -128,7 +128,6 @@ func New(ctx context.Context, nodectx *node.ServiceContext, config *config.Aquac
 		eventMux:       nodectx.EventMux,
 		accountManager: nodectx.AccountManager,
 		engine:         CreateConsensusEngine(nodectx, config.Aquahash, chainConfig, chainDb, nodename),
-		shutdownChan:   make(chan bool),
 		stopDbUpgrade:  stopDbUpgrade,
 		gasPrice:       new(big.Int).SetUint64(config.GasPrice),
 		aquabase:       aquabaseAddr,
@@ -537,7 +536,5 @@ func (s *Aquachain) Stop() error {
 	s.eventMux.Stop()
 
 	s.chainDb.Close()
-	close(s.shutdownChan)
-
 	return nil
 }
