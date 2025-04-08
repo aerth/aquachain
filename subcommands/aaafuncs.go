@@ -628,7 +628,6 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	if chaincfg == nil {
 		panic("switchDatadir: no chain config")
 	}
-	msg := "set datadir"
 	chainName := chaincfg.Name()
 	if chainName == "" {
 		panic("chain config has no name, use params.AddChainConfig or add a chain to params package, before switchDatadir")
@@ -641,6 +640,7 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	} else {
 		cfg.DataDir = node.DefaultDatadirByChain(chaincfg)
 	}
+	log.Info("DatadirSelect", "datadir", cfg.DataDir, "chain", chainName)
 	if cfg.DataDir == "" {
 		Fatalf("Cannot determine default data directory, please set manually (--datadir)")
 		return cfg
@@ -655,7 +655,6 @@ func switchDatadir(cmd *cli.Command, chaincfg *params.ChainConfig) DirectoryConf
 	default:
 		cfg.KeyStoreDir = filepath.Join(cfg.DataDir, "keystore")
 	}
-	log.Info(msg, "Using datadir", cfg.DataDir, "chain", chainName)
 	return cfg
 
 	// switch {
@@ -752,9 +751,10 @@ func SetNodeConfig(cmd *cli.Command, cfg *node.Config) error {
 	if nokeys {
 		cfg.NoKeys = true
 	}
-	if !nokeys {
+	if nokeys {
 		directoryCfg.KeyStoreDir = ""
-	} else {
+	}
+	if directoryCfg.KeyStoreDir != "" {
 		cfg.KeyStoreDir = directoryCfg.KeyStoreDir
 	}
 	if cfg.KeyStoreDir == "" {
@@ -964,33 +964,37 @@ func SetupAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 	}
 
 	if chaincfg.Name() == "dev" {
-		// Create new developer account or reuse existing one
-		var (
-			developer accounts.Account
-			err       error
-		)
-		am := stack.AccountManager()
-		if am != nil {
-			ks := am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
-			if accs := ks.Accounts(); len(accs) > 0 {
-				developer = ks.Accounts()[0]
-			} else {
-				developer, err = ks.NewAccount("")
-				if err != nil {
-					Fatalf("Failed to create developer account: %v", err)
-				}
-			}
-			if err := ks.Unlock(developer, ""); err != nil {
-				Fatalf("Failed to unlock developer account: %v", err)
-			}
-			log.Info("Using developer account", "address", developer.Address)
-			cfg.Genesis = core.NewDeveloperGenesisBlock(uint64(cmd.Int(aquaflags.DeveloperPeriodFlag.Name)), developer.Address)
-			if cfg.Genesis.Config.Clique == nil {
-				panic("nope")
-			}
+		SetupDevChain(cmd, stack, cfg)
+	}
 
+}
+
+func SetupDevChain(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
+	// Create new developer account or reuse existing one
+	var (
+		developer accounts.Account
+		err       error
+	)
+	am := stack.AccountManager()
+	if am == nil {
+		Fatalf("dev: No account manager available")
+	}
+	ks := am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
+	if accs := ks.Accounts(); len(accs) > 0 {
+		developer = ks.Accounts()[0]
+	} else {
+		developer, err = ks.NewAccount("")
+		if err != nil {
+			Fatalf("Failed to create developer account: %v", err)
 		}
-
+	}
+	if err := ks.Unlock(developer, ""); err != nil {
+		Fatalf("Failed to unlock developer account: %v", err)
+	}
+	log.Info("Using developer account", "address", developer.Address)
+	cfg.Genesis = core.NewDeveloperGenesisBlock(uint64(cmd.Int(aquaflags.DeveloperPeriodFlag.Name)), developer.Address)
+	if cfg.Genesis.Config.Clique == nil {
+		panic("nope")
 	}
 
 }
