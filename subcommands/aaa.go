@@ -285,29 +285,37 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 	}
 	// Start auxiliary services if enabled
 	if cmd.Bool(aquaflags.MiningEnabledFlag.Name) || cmd.Bool(aquaflags.DeveloperFlag.Name) {
-		var aquachain *aqua.Aquachain
-		if err := stack.Service(&aquachain); err != nil {
-			Fatalf("Aquachain service not running: %v", err)
-		}
-		// Use a reduced number of threads if requested
-		if threads := cmd.Int(aquaflags.MinerThreadsFlag.Name); threads > 0 {
-			type threaded interface {
-				SetThreads(threads int)
+		go func() {
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-nodeStarted:
 			}
-			if th, ok := aquachain.Engine().(threaded); ok {
-				th.SetThreads(int(threads))
+			var aquachain *aqua.Aquachain
+			if err := stack.Service(&aquachain); err != nil {
+				Fatalf("Aquachain service not running: %v", err)
 			}
-		}
-		// Set the gas price to the limits from the CLI and start mining
-		if cmd.IsSet(aquaflags.GasPriceFlag.Name) {
-			if x := aquaflags.GlobalBig(cmd, aquaflags.GasPriceFlag.Name); x != nil {
-				aquachain.TxPool().SetGasPrice(x)
+			// Use a reduced number of threads if requested
+			if threads := cmd.Int(aquaflags.MinerThreadsFlag.Name); threads > 0 {
+				type threaded interface {
+					SetThreads(threads int)
+				}
+				if th, ok := aquachain.Engine().(threaded); ok {
+					th.SetThreads(int(threads))
+				}
 			}
-		}
-		log.Info("gas price", "min", aquachain.TxPool().GasPrice())
-		if err := aquachain.StartMining(true); err != nil {
-			Fatalf("Failed to start mining: %v", err)
-		}
+			// Set the gas price to the limits from the CLI and start mining
+			if cmd.IsSet(aquaflags.GasPriceFlag.Name) {
+				if x := aquaflags.GlobalBig(cmd, aquaflags.GasPriceFlag.Name); x != nil {
+					aquachain.TxPool().SetGasPrice(x)
+				}
+			}
+			log.Info("gas price", "min", aquachain.TxPool().GasPrice())
+			if err := aquachain.StartMining(true); err != nil {
+				Fatalf("Failed to start mining: %v", err)
+			}
+		}()
 	}
 	return nodeStarted
 }
