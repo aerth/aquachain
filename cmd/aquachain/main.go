@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/user"
 	"runtime"
@@ -81,9 +82,11 @@ func setupMain() *cli.Command {
 			return s
 		},
 		After:          afterFunc,
-		DefaultCommand: "help",
+		DefaultCommand: "", // auto help
 		Commands:       subcommands.Subcommands(),
 		// HideHelpCommand: true,
+		CustomRootCommandHelpTemplate: cli.RootCommandHelpTemplate +
+			"Important:\n\t**There is no longer a default subcommand command.**\n\tUse 'daemon' or 'console' for previous default behavior.\n",
 		HideVersion: false,
 	}
 	for _, cmd := range this_app.Commands {
@@ -106,8 +109,8 @@ func init() {
 }
 
 // afterFunc only for this main package (all subcommands)
-func afterFunc(context.Context, *cli.Command) error {
-	log.Debug("afterFunc called")
+func afterFunc(_ context.Context, cmd *cli.Command) error {
+	log.Debug("afterFunc called", "subcommand", cmd.Name, "isroot", cmd.Root() == nil)
 	mainctxs.MainCancelCause()(fmt.Errorf("finished")) // quit anything running in case it wasnt called
 	debug.Exit()                                       // quit any running debug profiling
 	console.Stdin.Close()
@@ -176,6 +179,16 @@ func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 }
 
 func main() {
+	// always exit nonzero if help is displayed
+	if keep := cli.HelpPrinterCustom; true {
+		if keep == nil {
+			panic("cli.HelpPrinterCustom is nil")
+		}
+		cli.HelpPrinterCustom = func(w io.Writer, templ string, data interface{}, customFunc map[string]interface{}) {
+			keep(w, templ, data, customFunc)
+			os.Exit(11)
+		}
+	}
 	logpkg.SetFlags(logpkg.Lshortfile)
 	if err := sense.DotEnv(); err != nil {
 		println("dot env:", err.Error())
