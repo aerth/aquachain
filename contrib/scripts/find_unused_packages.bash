@@ -3,7 +3,7 @@
 # part of aquachain (https://aquachain.github.io)
 
 list_all_packages(){
-    go list -f '{{.ImportPath}}' ./... | grep -v '/vendor/' | grep -v '/test/' | grep -v '/cmd/' | grep -v '/examples/' | grep -v '/scripts/' | grep -v '/tools/' | grep -v '/third_party/' | grep -v '/testdata/' | grep -v '/pkg/' | grep -v '/internal/'
+    go list -f '{{.ImportPath}}' ./... | grep -v '/cmd/'
 }
 
 all_pkg=$(list_all_packages)
@@ -39,4 +39,9 @@ for pkg_ in $all_pkg; do
     fi
 done
 
-echo "you can run: rm -rf ${unused[@]}"
+if [ ${#unused[@]} -eq 0 ]; then
+    echo "No unused packages found"
+    exit 0
+fi
+echo "You can run: rm -rf ${unused[@]}"
+exit 1 # for testing
