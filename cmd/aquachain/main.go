@@ -37,7 +37,6 @@ import (
 	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/opt/console"
 	"gitlab.com/aquachain/aquachain/p2p/discover"
-	"gitlab.com/aquachain/aquachain/params"
 	"gitlab.com/aquachain/aquachain/subcommands"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
@@ -92,17 +91,9 @@ func setupMain() *cli.Command {
 			cmd.Usage = cmd.Name
 		}
 		if cmd.Name == "daemon" || cmd.Name == "console" {
-			cmd.Flags = append(cmd.Flags, this_app.Flags...)
+			cmd.Flags = append(cmd.Flags, this_app.Flags...) // add Root() flags to chain commands (TODO: all?)
 		}
 	}
-	// { // add and sort flags
-	// 	app := this_app
-	// 	// app.Flags = append(app.Flags, debug.Flags...)
-	// 	app.Flags = append(app.Flags, aquaflags.NodeFlags...)
-	// 	app.Flags = append(app.Flags, aquaflags.RPCFlags...)
-	// 	app.Flags = append(app.Flags, aquaflags.ConsoleFlags...)
-	// 	sort.Sort((cli.FlagsByName)(this_app.Flags))
-	// }
 	return this_app
 }
 func init() {
@@ -114,26 +105,9 @@ func init() {
 	subcommands.SubcommandByName("daemon").Before = beforeFunc
 }
 
-var consoledefault = &cli.Command{
-	Name:  "consoledefault",
-	Usage: "Start full interactive console",
-	// Before: subcommands.BeforeNodeFunc,
-	Action: func(ctx context.Context, cmd *cli.Command) error {
-		x := subcommands.SubcommandByName("console")
-		if x.Root() == nil {
-			return fmt.Errorf("woops")
-		}
-		args := append([]string{"console"}, os.Args[1:]...) // prepend 'console' subcommand for cli parse
-		args2 := cmd.Args().Slice()
-		log.Info("running consoledefault", "args", args, "args2", args2, "osargs", os.Args)
-		return x.Run(ctx, args) // no subcommand given so we know all the args are flags :)
-	},
-	Hidden: true,
-	// Flags: subcommands.SubcommandByName("console").Flags,
-}
-
-// afterFunc only for this main package
+// afterFunc only for this main package (all subcommands)
 func afterFunc(context.Context, *cli.Command) error {
+	log.Debug("afterFunc called")
 	mainctxs.MainCancelCause()(fmt.Errorf("finished")) // quit anything running in case it wasnt called
 	debug.Exit()                                       // quit any running debug profiling
 	console.Stdin.Close()
@@ -185,9 +159,7 @@ func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 	if metrics.Enabled = cmd.Bool(aquaflags.MetricsEnabledFlag.Name); metrics.Enabled {
 		go metrics.CollectProcessMetrics(3 * time.Second)
 	}
-	if targetGasLimit := cmd.Uint(aquaflags.TargetGasLimitFlag.Name); targetGasLimit > 0 {
-		params.TargetGasLimit = targetGasLimit
-	}
+	// alerts system
 	alertplatform, autoalertmode := sense.LookupEnv("ALERT_PLATFORM")
 	if autoalertmode {
 		log.Info("auto alert mode enabled", "platform", alertplatform)
@@ -195,7 +167,10 @@ func beforeFunc(ctx context.Context, cmd *cli.Command) (context.Context, error) 
 	}
 	if alertmode := cmd.Bool(aquaflags.AlertModeFlag.Name); alertmode {
 		log.Info("alert mode enabled", "platform", alertplatform)
-		alerts.ParseAlertConfig()
+		_, err := alerts.ParseAlertConfig()
+		if err != nil {
+			log.Warn("failed to parse alert config", "err", err)
+		}
 	}
 	return ctx, nil
 }
@@ -212,7 +187,7 @@ func main() {
 		log.Warn("context has been done for 10 seconds and we are still running... consider sending SIGINT")
 	}()
 	app := setupMain()
-	log.Info("running", "app", app.Name, "version", app.Version, "args", strings.Join(os.Args, ","))
+	log.Trace("running", "app", app.Name, "version", app.Version, "args", strings.Join(os.Args, ","))
 
 	// migrate flags to the next level
 	{
@@ -234,9 +209,11 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: running %s failed with error %+v\n", app.Name, err)
 	}
-	fn := log.Info
+	fn := log.Debug
 	if err != nil {
 		fn = log.Error
+	} else if time.Since(subcommands.GetStartTime()) > time.Second*4 {
+		fn = log.Info
 	}
 	fn("subcommand finished", "subcommand", mainsubcommand, "errored", err != nil, "error", err)
 	if err := debug.WaitLoops(time.Second * 2); err != nil {
@@ -258,6 +235,7 @@ func checkRuntimeEnvironment() error {
 		return fmt.Errorf("do not run as root")
 	}
 	// check time is not too far off
+	log.Info("checking time drift, if this hangs check if outgoing UDP port 123 is blocked")
 	if err := discover.CheckClockDrift(); err != nil {
 		return fmt.Errorf("time check failed: %v", err)
 	}
