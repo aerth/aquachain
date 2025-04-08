@@ -10,8 +10,7 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v3"
-	"gitlab.com/aquachain/aquachain/internal/debug"
-	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
+	"gitlab.com/aquachain/aquachain/subcommands"
 )
 
 var errMainQuit = errors.New("run success")
@@ -33,28 +32,22 @@ var command2 = &cli.Command{
 	Name:  "command2",
 	Usage: "command2 is a test command",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		fmt.Println("command2 executed")
+		fmt.Printf("command2 executed: someflag=%q debug=%v\n", cmd.String("someflag"), cmd.Bool("debug"))
 		return nil
+	},
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "someflag",
+			Usage: "some flag for command2",
+		},
 	},
 }
 
-var GlobalFlags = append([]cli.Flag{
-	aquaflags.ChainFlag,
-	aquaflags.DoitNowFlag,
-	aquaflags.ConfigFileFlag,
-	aquaflags.DataDirFlag},
-	debug.LogFlags...,
-)
-
 func main() {
 	app := &cli.Command{
-		Name:  "newtester",
-		Usage: "newtester is a command line tool for testing",
-		Flags: GlobalFlags,
-		// Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		// 	// appconfig.chain = cmd.String(aquaflags.ChainFlag.Name)
-		// 	return ctx, nil
-		// },
+		Name:     "newtester",
+		Usage:    "newtester is a command line tool for testing",
+		Flags:    subcommands.GlobalFlags,
 		Commands: []*cli.Command{command1, command2},
 	}
 
@@ -68,11 +61,13 @@ func main() {
 		cancelcause(fmt.Errorf("received signal %s", sig))
 	}()
 
-	app.Run(ctx, os.Args)
-
+	e := app.Run(ctx, os.Args)
 	err := context.Cause(ctx)
+	if e != nil && e != errMainQuit && e != err {
+		fmt.Fprintf(os.Stderr, "error1: %v\n", e)
+	}
 	if err != nil && err != errMainQuit {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
 	}
+	os.Exit(1)
 }

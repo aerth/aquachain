@@ -23,6 +23,8 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"slices"
+	"strings"
 	"time"
 
 	logpkg "log"
@@ -58,14 +60,6 @@ func init() {
 	log.HandleSignals()
 }
 
-var GlobalFlags = append([]cli.Flag{
-	aquaflags.ChainFlag,
-	aquaflags.DoitNowFlag,
-	aquaflags.ConfigFileFlag,
-	aquaflags.DataDirFlag},
-	debug.LogFlags...,
-)
-
 // setupMain ... for this main package only
 func setupMain() *cli.Command {
 	defaults := subcommands.NewApp(clientIdentifier, gitCommit, "the Aquachain command line interface")
@@ -77,34 +71,29 @@ func setupMain() *cli.Command {
 		ShellCompletionCommandName: defaults.ShellCompletionCommandName,
 		Suggest:                    defaults.Suggest,
 		Hidden:                     true,
-		Flags:                      GlobalFlags,
-		// Flags: append([]cli.Flag{ // "global flags", keep it short
-		// 	aquaflags.NoEnvFlag,
-		// 	aquaflags.DoitNowFlag,
-		// 	aquaflags.ConfigFileFlag,
-		// 	aquaflags.ChainFlag,
-		// 	aquaflags.GCModeFlag,
-		// }, debug.Flags...),
+		Flags:                      subcommands.GlobalFlags,
 		SuggestCommandFunc: func(commands []*cli.Command, provided string) string {
 			s := cli.SuggestCommand(commands, provided)
-			// log.Info("running SuggestCommand", "commands", commands, "provided", provided, "suggesting", s)
 			if s == provided {
 				return s
 			}
-
 			println("did you mean:", s)
 			os.Exit(1)
 			return s
 		},
-
 		After:          afterFunc,
 		DefaultCommand: "help",
-		Commands: append([]*cli.Command{
-			// helpCommand,
-			consoledefault,
-		}, subcommands.Subcommands()...),
+		Commands:       subcommands.Subcommands(),
 		// HideHelpCommand: true,
 		HideVersion: false,
+	}
+	for _, cmd := range this_app.Commands {
+		if cmd.Usage == "" {
+			cmd.Usage = cmd.Name
+		}
+		if cmd.Name == "daemon" || cmd.Name == "console" {
+			cmd.Flags = append(cmd.Flags, this_app.Flags...)
+		}
 	}
 	// { // add and sort flags
 	// 	app := this_app
@@ -148,7 +137,7 @@ func afterFunc(context.Context, *cli.Command) error {
 	mainctxs.MainCancelCause()(fmt.Errorf("finished")) // quit anything running in case it wasnt called
 	debug.Exit()                                       // quit any running debug profiling
 	console.Stdin.Close()
-	if err := debug.WaitLoops(time.Second / 2); err != nil {
+	if err := debug.WaitLoops(time.Second * 2); err != nil {
 		log.Warn("waiting for loops", "err", err)
 	}
 	return nil
@@ -223,11 +212,29 @@ func main() {
 		log.Warn("context has been done for 10 seconds and we are still running... consider sending SIGINT")
 	}()
 	app := setupMain()
+	log.Info("running", "app", app.Name, "version", app.Version, "args", strings.Join(os.Args, ","))
+
+	// migrate flags to the next level
+	{
+		args := os.Args[1:]
+		for i, arg := range args {
+			if arg == "console" || arg == "consoledefault" || arg == "daemon" || arg == "attach" {
+				// move arg to the beginning of the args list
+				if i > 0 {
+					args = slices.Delete(args, i, i+1)
+					args = slices.Insert(args, 0, arg)
+					break
+				}
+			}
+		}
+		os.Args = append([]string{os.Args[0]}, args...)
+	}
+
 	err := app.Run(mainctxs.Main(), os.Args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal: running %s failed with error %+v\n", app.Name, err)
 	}
-	fn := log.Debug
+	fn := log.Info
 	if err != nil {
 		fn = log.Error
 	}

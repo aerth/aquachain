@@ -43,36 +43,30 @@ var (
 		Name:        "daemon",
 		Before:      BeforeNodeFunc,
 		Flags:       aquaflags.DaemonFlags,
-		Usage:       "Start a full node",
+		ArgsUsage:   "[options]",
 		Category:    "CONSOLE COMMANDS",
-		Description: "",
+		Description: "Start a full aquachain node. By default, an IPC socket is created to allow for attaching admin clients.",
 	}
 	consoleCommand = &cli.Command{
 		Action: MigrateFlags(localConsole),
 		// Action:   localConsole,
-		Before:   BeforeNodeFunc,
-		Name:     "console",
-		Usage:    "Start an interactive JavaScript environment",
-		Flags:    append(aquaflags.ConsoleFlags, aquaflags.DaemonFlags...),
-		Category: "CONSOLE COMMANDS",
-		Description: `
-The Aquachain console is an interactive shell for the JavaScript runtime environment
-which exposes a node admin interface as well as the Ðapp JavaScript API.
-See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Console.`,
+		Before:      BeforeNodeFunc,
+		Name:        "console",
+		ArgsUsage:   "[options]",
+		Usage:       "Start an interactive JavaScript environment",
+		Flags:       append(aquaflags.ConsoleFlags, aquaflags.DaemonFlags...),
+		Category:    "CONSOLE COMMANDS",
+		Description: "Start the full node with an interactive JavaScript console.",
 	}
 
 	attachCommand = &cli.Command{
-		Action:    MigrateFlags(remoteConsole),
-		Name:      "attach",
-		Usage:     "Start an interactive JavaScript environment (connect to node)",
-		ArgsUsage: "[endpoint]",
-		Flags:     append(aquaflags.ConsoleFlags, aquaflags.DataDirFlag),
-		Category:  "CONSOLE COMMANDS",
-		Description: `
-The Aquachain console is an interactive shell for the JavaScript runtime environment
-which exposes a node admin interface as well as the Ðapp JavaScript API.
-See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Console.
-This command allows to open a console on a running aquachain node.`,
+		Action:      MigrateFlags(remoteConsole),
+		Name:        "attach",
+		Usage:       "Start an interactive JavaScript environment (connect to node)",
+		ArgsUsage:   "[endpoint]",
+		Flags:       append(aquaflags.ConsoleFlags, aquaflags.RPCFlags[:]...),
+		Category:    "CONSOLE COMMANDS",
+		Description: `Connect to a running aquachain node and start an interactive JavaScript console.`,
 	}
 
 	javascriptCommand = &cli.Command{
@@ -81,10 +75,8 @@ This command allows to open a console on a running aquachain node.`,
 		Usage:     "Execute the specified JavaScript files",
 		ArgsUsage: "<jsfile> [jsfile...]",
 		// Flags:     append(nodeFlags, consoleFlags...),
-		Category: "CONSOLE COMMANDS",
-		Description: `
-The JavaScript VM exposes a node admin interface as well as the Ðapp
-JavaScript API. See https://gitlab.com/aquachain/aquachain/wiki/JavaScript-Console`,
+		Category:    "CONSOLE COMMANDS",
+		Description: "",
 	}
 )
 
@@ -255,17 +247,26 @@ func dialRPC(endpoint string, socks string, clientIdentifier string) (*rpc.Clien
 	return rpc.Dial(endpoint)
 }
 
-// ephemeralConsole starts a new aquachain node, attaches an ephemeral JavaScript
+// ephemeralConsole starts the aquachain full node, attaches an ephemeral JavaScript
 // console to it, executes each of the files specified as arguments and tears
 // everything down.
 func ephemeralConsole(ctx context.Context, cmd *cli.Command) error {
 	// Create and start the node based on the CLI flags
-	node := MakeFullNode(ctx, cmd)
-	StartNodeCommand(ctx, cmd, node)
-	defer node.Stop()
+	nodeserver := MakeFullNode(ctx, cmd)
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	started := startNode(ctx, cmd, nodeserver)
+	defer nodeserver.Stop()
+
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case <-started: // wait for node to start
+	}
 
 	// Attach to the newly started node and start the JavaScript console
-	client, err := node.Attach(ctx, "ephemeralConsole")
+	client, err := nodeserver.Attach(ctx, "ephemeralConsole")
 	if err != nil {
 		return fmt.Errorf("failed to attach to the ephemeral inproc aquachain: %v", err)
 	}

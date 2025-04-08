@@ -30,14 +30,27 @@ import (
 
 	cli "github.com/urfave/cli/v3"
 	"gitlab.com/aquachain/aquachain/crypto"
-	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
 )
 
+var (
+	paperJsonFlag = &cli.BoolFlag{
+		Name:  "json",
+		Usage: "Print paper keypair in machine-readable JSON format",
+	}
+	paperVanityFlag = &cli.StringFlag{
+		Name:  "vanity",
+		Usage: "Prefix for generating a vanity address (do not include 0x, start small)",
+	}
+	paperVanityEndFlag = &cli.StringFlag{
+		Name:  "vanityend",
+		Usage: "Suffix for generating a vanity address (start small)",
+	}
+)
 var (
 	paperCommand = &cli.Command{
 		Name:      "paper",
 		Usage:     `Generate paper wallet keypair`,
-		Flags:     []cli.Flag{aquaflags.JsonFlag, aquaflags.VanityFlag, aquaflags.VanityEndFlag, paperthreadsFlag},
+		Flags:     []cli.Flag{paperJsonFlag, paperVanityFlag, paperVanityEndFlag, paperthreadsFlag},
 		ArgsUsage: "[number of wallets]",
 		Category:  "ACCOUNT COMMANDS",
 		Action:    paper,
