@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -153,9 +152,6 @@ func assumeEndpoint(_ context.Context, cmd *cli.Command) string {
 	chaincfg := params.GetChainConfig(cmd.String(aquaflags.ChainFlag.Name))
 	defaultpath := node.DefaultDatadirByChain(chaincfg)
 	path := defaultpath
-	if chaincfg != params.MainnetChainConfig {
-		path = filepath.Join(defaultpath, chaincfg.Name())
-	}
 	if cmd.IsSet(aquaflags.DataDirFlag.Name) {
 		got := cmd.String(aquaflags.DataDirFlag.Name)
 		// handle case where /var/lib/aquachain is passed with testnet and incompatible genesis block
