@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/urfave/cli/v3"
@@ -164,11 +165,8 @@ func getStuff(cmd *cli.Command) (string, *params.ChainConfig, []*discover.Node, 
 	case "dev":
 		cmd.Set(aquaflags.DeveloperFlag.Name, "true")
 	case "testnet":
-		cmd.Set(aquaflags.TestnetFlag.Name, "true")
 	case "testnet2":
-		cmd.Set(aquaflags.Testnet2Flag.Name, "true")
 	case "testnet3":
-		cmd.Set(aquaflags.Testnet3Flag.Name, "true")
 	case "aqua":
 		// ok, skip warning
 	default:
@@ -898,7 +896,7 @@ func SetupAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 	// Avoid conflicting network flags
 	// note: these are disabled flags, but Set is still called before this function
 	// checkExclusive(cmd, aquaflags.DeveloperFlag, aquaflags.NoKeysFlag) have fun without keys on dev chain
-	checkExclusive(cmd, aquaflags.FastSyncFlag, aquaflags.SyncModeFlag, aquaflags.OfflineFlag)
+	checkExclusive(cmd, aquaflags.SyncModeFlag, aquaflags.OfflineFlag)
 	if cmd.Bool(aquaflags.AlertModeFlag.Name) {
 		cfgAlerts, err := alerts.ParseAlertConfig()
 		if err != nil {
@@ -930,20 +928,17 @@ func SetupAquaConfig(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 		if err != nil {
 			Fatalf("Failed to parse sync mode: %v", err)
 		}
-	case cmd.Bool(aquaflags.FastSyncFlag.Name):
-		cfg.SyncMode = downloader.FastSync
 	}
 
 	if cmd.IsSet(aquaflags.CacheFlag.Name) || cmd.IsSet(aquaflags.CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = int(cmd.Int(aquaflags.CacheFlag.Name) * cmd.Int(aquaflags.CacheDatabaseFlag.Name) / 100)
 	}
 	cfg.DatabaseHandles = makeDatabaseHandles()
-
-	if gcmode := cmd.String(aquaflags.GCModeFlag.Name); gcmode != "full" && gcmode != "archive" {
-		Fatalf("--%s must be either 'full' or 'archive', use 'archive' for full state", aquaflags.GCModeFlag.Name)
+	cfg.NoPruning = cfg.NoPruning || !(cmd.String(aquaflags.GCModeFlag.Name) == "full")
+	if !cfg.NoPruning {
+		log.Warn("Pruning is enabled, unsupported mode!")
+		time.Sleep(time.Second)
 	}
-	cfg.NoPruning = cfg.NoPruning || cmd.String(aquaflags.GCModeFlag.Name) == "archive"
-
 	if cmd.IsSet(aquaflags.CacheFlag.Name) || cmd.IsSet(aquaflags.CacheGCFlag.Name) {
 		cfg.TrieCache = int(cmd.Int(aquaflags.CacheFlag.Name) * cmd.Int(aquaflags.CacheGCFlag.Name) / 100)
 	}
@@ -1104,11 +1099,11 @@ func MakeChain(cmd *cli.Command, stack *node.Node) (chain *core.BlockChain, chai
 		Fatalf("--%s must be either 'full' or 'archive'", aquaflags.GCModeFlag.Name)
 	}
 	cache := &core.CacheConfig{
-		Disabled:      cmd.String(aquaflags.GCModeFlag.Name) == "archive",
+		Disabled:      cmd.String(aquaflags.GCModeFlag.Name) != "full",
 		TrieNodeLimit: aqua.DefaultConfig.TrieCache,
 		TrieTimeLimit: aqua.DefaultConfig.TrieTimeout,
 	}
-	if cmd.IsSet(aquaflags.CacheFlag.Name) || cmd.IsSet(aquaflags.CacheGCFlag.Name) {
+	if cmd.IsSet(aquaflags.CacheFlag.Name) && cmd.IsSet(aquaflags.CacheGCFlag.Name) {
 		cache.TrieNodeLimit = int(cmd.Int(aquaflags.CacheFlag.Name) * cmd.Int(aquaflags.CacheGCFlag.Name) / 100)
 	}
 	vmcfg := vm.Config{EnablePreimageRecording: cmd.Bool(aquaflags.VMEnableDebugFlag.Name)}
@@ -1153,6 +1148,7 @@ func MakeConsolePreloads(cmd *cli.Command) []string {
 // When all flags are migrated this function can be removed and the existing
 // configuration functionality must be changed that is uses local flags
 func MigrateFlags(action func(_ context.Context, cmd *cli.Command) error) func(context.Context, *cli.Command) error {
+	// return action
 	migrated := &MigratedCommand{
 		Action: action,
 	}
@@ -1163,17 +1159,38 @@ type MigratedCommand struct {
 	Action func(context.Context, *cli.Command) error
 }
 
-func applyFlagsOneWay(from, to *cli.Command, flags ...cli.Flag) {
-	for _, flag := range flags {
-		if !from.IsSet(flag.Names()[0]) {
-			continue
+type StringList []string
+
+func (s StringList) Contains(name string) bool {
+	for _, n := range s {
+		if n == name {
+			return true
 		}
+	}
+	return false
+}
+
+func applyFlagsOneWay(from, to *cli.Command, flags ...cli.Flag) {
+	if len(flags) == 0 {
+		flags = from.Flags
+	}
+	// fromflags := StringList(from.FlagNames())
+	toflags := StringList(to.FlagNames())
+	for _, flag := range flags {
 		for _, name := range flag.Names() {
-			log.Trace("Migrating flag", "name", name, "value", from.Value(name))
+			if !from.IsSet(name) {
+				// log.Info("Skipping flag migrate", "name", name)
+				continue
+			}
+
+			// prevent 'foo -bar 1 subcommand -bar 2'
 			if to.IsSet(name) && to.Value(name) != from.Value(name) {
 				Fatalf("Flag %q already set to %q", name, to.Value(name))
 			}
-			if !to.IsSet(name) {
+
+			// foo -bar 1 subcommand -> foo subcommand -bar 1
+			if !to.IsSet(name) && toflags.Contains(name) {
+				log.Info("Migrating flag", "name", name, "value", from.Value(name))
 				if err := to.Set(name, from.String(name)); err != nil {
 					Fatalf("Failed to set flag %q: %v", name, err)
 					return // unreachable
@@ -1186,15 +1203,23 @@ func applyFlagsOneWay(from, to *cli.Command, flags ...cli.Flag) {
 
 func (m *MigratedCommand) Run(ctx context.Context, cmd *cli.Command) error {
 	// cmdmap := map[string]string{}
-	log.Trace("migrating command", "name", cmd.Name,
-		"flags", cmd.FlagNames(), "rootname", cmd.Root().Name, "rootflags", cmd.Root().FlagNames(),
-		"local", cmd.LocalFlagNames(), "args", cmd.Arguments)
 	// for _, c := range cmd.Commands {
 	// 	cmdmap[c.Name] = c.Name
 	// }
+	if cmd.Root() == nil {
+		Fatalf("no root command")
+		return nil
+	}
+	if cmd == nil {
+		Fatalf("no command")
+		return nil
+	}
 
-	applyFlagsOneWay(cmd.Root(), cmd)
+	log.Info("migrating command", "name", cmd.Name,
+		"flags", cmd.FlagNames(), "rootname", cmd.Root().Name, "rootflags", cmd.Root().FlagNames(),
+		"local", cmd.LocalFlagNames(), "args", cmd.Arguments)
 	applyFlagsOneWay(cmd, cmd.Root())
+	applyFlagsOneWay(cmd.Root(), cmd)
 	// log.Warn("running migrated action", "name", cmd.Name, "args", cmd.Args().Slice(), "flagsEnabled", cmd.LocalFlagNames())
 	return m.Action(ctx, cmd)
 }
@@ -1237,7 +1262,8 @@ func MakeConfigNode(ctx context.Context, cmd *cli.Command, gitCommit string, cli
 }
 
 func Fatalf(format string, args ...interface{}) {
-	log.Crit(fmt.Sprintf(format, args...))
+	caller := log.Caller(1).String()
+	log.Crit(caller + " " + fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
 

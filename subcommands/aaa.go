@@ -15,6 +15,7 @@ import (
 	"gitlab.com/aquachain/aquachain/common/log"
 	"gitlab.com/aquachain/aquachain/common/sense"
 	"gitlab.com/aquachain/aquachain/common/toml"
+	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/node"
 	"gitlab.com/aquachain/aquachain/opt/aquaclient"
 	"gitlab.com/aquachain/aquachain/p2p"
@@ -37,6 +38,15 @@ func SetBuildInfo(commit, date, tag string, clientIdentifier0 string) {
 	})
 }
 
+var GlobalFlags = append(append([]cli.Flag{
+	aquaflags.ChainFlag,
+	aquaflags.DoitNowFlag,
+	aquaflags.ConfigFileFlag,
+	aquaflags.NoEnvFlag,
+	aquaflags.DataDirFlag},
+	debug.LogFlags...,
+), debug.DebugFlags...)
+
 func Subcommands() []*cli.Command {
 	return []*cli.Command{
 		echoCommand,
@@ -47,7 +57,7 @@ func Subcommands() []*cli.Command {
 		removedbCommand,
 		dumpCommand,
 		// See monitorcmd.go:
-		//monitorCommand,
+		// monitorCommand,
 		// See accountcmd.go:
 		accountCommand,
 
@@ -83,8 +93,7 @@ func SubcommandByName(s string) *cli.Command {
 var dumpConfigCommand = &cli.Command{
 	Action:      MigrateFlags(dumpConfig),
 	Name:        "dumpconfig",
-	Usage:       "Show configuration values",
-	ArgsUsage:   "",
+	Usage:       "Dump configuration values to stdout (TOML format)",
 	Flags:       append(aquaflags.NodeFlags[:], aquaflags.RPCFlags[:]...),
 	Category:    "MISCELLANEOUS COMMANDS",
 	Description: `The dumpconfig command shows configuration values.`,

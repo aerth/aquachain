@@ -71,7 +71,9 @@ type multicancelcause struct {
 }
 
 func (x multicancelcause) CancelCause(err error) {
-	log.Warn("shutting down everything: interrupted", "err", err)
+	if err == nil || err.Error() != "finished" {
+		log.Warn("shutting down everything: interrupted", "err", err)
+	}
 	x.cancel1(err)
 	for _, c := range x.cancels {
 		if c != nil {
