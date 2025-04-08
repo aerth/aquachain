@@ -981,8 +981,10 @@ func SetupDevChain(cmd *cli.Command, stack *node.Node, cfg *aqua.Config) {
 	}
 	ks := am.Backends(keystore.KeyStoreType)[0].(*keystore.KeyStore)
 	if accs := ks.Accounts(); len(accs) > 0 {
+		log.Info("re-using existing developer account")
 		developer = ks.Accounts()[0]
 	} else {
+		log.Info("creating new developer account")
 		developer, err = ks.NewAccount("")
 		if err != nil {
 			Fatalf("Failed to create developer account: %v", err)
