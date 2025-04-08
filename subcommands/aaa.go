@@ -19,6 +19,7 @@ import (
 	"gitlab.com/aquachain/aquachain/node"
 	"gitlab.com/aquachain/aquachain/opt/aquaclient"
 	"gitlab.com/aquachain/aquachain/p2p"
+	"gitlab.com/aquachain/aquachain/rpc"
 	"gitlab.com/aquachain/aquachain/subcommands/aquaflags"
 	"gitlab.com/aquachain/aquachain/subcommands/buildinfo"
 	"gitlab.com/aquachain/aquachain/subcommands/mainctxs"
@@ -183,6 +184,11 @@ func startNode(ctx context.Context, cmd *cli.Command, stack *node.Node) chan str
 	}
 	if cmd.Bool(aquaflags.NoKeysFlag.Name) && !stack.Config().NoKeys {
 		log.Crit("NO_KEYS mode is not enabled, but --no-keys flag was set")
+		return nil
+	}
+
+	if stack.Config().P2P.ChainConfig().Name() == "dev" && rpc.SigningIsFullyDisabled() {
+		log.Crit("Developer mode should have at least one signing method enabled, the safest being 'UNSAFE_ALLOW_SIGN_IPC=1' ")
 		return nil
 	}
 
