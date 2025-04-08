@@ -187,7 +187,7 @@ EOF
         rm -f "aquachain-$version-$goos-$goarch.deb"
     fi
     echo "building: aquachain-$version-$goos-$goarch.deb"
-    dpkg-deb --build $tmpdir "aquachain-$version-$goos-$goarch.deb"
+    fakeroot dpkg-deb --build --root-owner-group $tmpdir "aquachain-$version-$goos-$goarch.deb"
     echo "created: aquachain-$version-$goos-$goarch.deb"
     sha256sum "aquachain-$version-$goos-$goarch.deb"
 
