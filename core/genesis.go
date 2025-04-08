@@ -361,7 +361,9 @@ func DefaultGenesisByName(name string) *Genesis {
 	if g, ok := byName[name]; ok { // use byName to avoid creating a new genesis block
 		return g
 	}
-	log.Error("unknown genesis block", "chain", name)
+	if name != "dev" {
+		log.Error("unknown genesis block", "chain", name)
+	}
 	return nil
 
 }
