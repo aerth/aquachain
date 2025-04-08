@@ -28,7 +28,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/syndtr/goleveldb v1.0.0
 	golang.org/x/crypto v0.37.0
-	golang.org/x/net v0.38.0
+	golang.org/x/net v0.39.0
 	golang.org/x/sys v0.32.0
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20210326210528-650f7c854440
 )
