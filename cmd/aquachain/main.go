@@ -86,7 +86,7 @@ func setupMain() *cli.Command {
 		Commands:       subcommands.Subcommands(),
 		// HideHelpCommand: true,
 		CustomRootCommandHelpTemplate: cli.RootCommandHelpTemplate +
-			"Important:\n\t**There is no longer a default subcommand command.**\n\tUse 'daemon' or 'console' for previous default behavior.\n",
+			"Important:\n\t**There is no longer a default subcommand!**\n\tUse 'daemon' or 'console' for previous default behavior.\n",
 		HideVersion: false,
 	}
 	for _, cmd := range this_app.Commands {
