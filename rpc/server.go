@@ -81,11 +81,14 @@ func (s *RPCService) Modules() map[string]string {
 }
 
 // these can not not be in .env file
-var allow_all_rpc_signing = sense.EnvBool("UNSAFE_RPC_SIGNING")   // needed even with localhost http
+// var allow_all_rpc_signing = sense.EnvBool("UNSAFE_RPC_SIGNING")   // needed even with localhost http
 var allow_sign_ipc = sense.EnvBool("UNSAFE_ALLOW_SIGN_IPC")       // safer than localhost http
 var allow_sign_http = sense.EnvBool("UNSAFE_RPC_SIGNING_HTTP")    //
 var allow_sign_ws = sense.EnvBool("UNSAFE_RPC_SIGNING_WS")        //
 var allow_sign_inProc = sense.EnvBool("UNSAFE_ALLOW_SIGN_INPROC") // testing
+func SigningIsFullyDisabled() bool {
+	return !allow_sign_ipc && !allow_sign_http && !allow_sign_ws && !allow_sign_inProc
+}
 
 // RegisterName will create a service for the given rcvr type under the given name. When no methods on the given rcvr
 // match the criteria to be either a RPC method or a subscription an error is returned. Otherwise a new service is
@@ -136,21 +139,23 @@ func (s *Server) RegisterName(name string, rcvr interface{}) (methodNames []stri
 		callertype = "IPC"
 		envname = "UNSAFE_ALLOW_SIGN_IPC"
 		is_allowed = allow_sign_ipc
-	}
-	if strings.HasSuffix(funcname, ".startInProc") {
+	} else if strings.HasSuffix(funcname, ".startInProc") {
 		callertype = "InProc"
 		envname = "UNSAFE_ALLOW_SIGN_INPROC"
 		is_allowed = allow_sign_inProc
-	}
-	if strings.HasSuffix(funcname, ".startHTTP") {
+	} else if strings.HasSuffix(funcname, ".startHTTP") {
 		callertype = "HTTP"
 		envname = "UNSAFE_RPC_SIGNING_HTTP"
 		is_allowed = allow_sign_http
-	}
-	if strings.HasSuffix(funcname, ".startWS") {
+	} else if strings.HasSuffix(funcname, ".startWS") {
 		callertype = "WS"
 		envname = "UNSAFE_RPC_SIGNING_WS"
 		is_allowed = allow_sign_ws
+	} else if funcname == "rpc.NewServer" {
+		is_allowed = false // just in case
+	} else {
+		log.Error("RPC Server: unknown caller type", "caller", fmt.Sprintf("%v", st), "callerf", funcname)
+		return nil, fmt.Errorf("unknown caller type")
 	}
 
 	for k, m := range methods { // methods is a map
