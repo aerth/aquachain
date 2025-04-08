@@ -1,11 +1,14 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
+	"github.com/go-stack/stack"
 	"gitlab.com/aquachain/aquachain/common/sense"
 )
 
@@ -157,3 +160,78 @@ func newRootHandler() Handler {
 	x = LvlFilterHandler(lvl, x)
 	return x
 }
+
+func GracefulShutdownf(causef string, args ...any) {
+	for i, a := range args {
+		if err, ok := a.(error); ok {
+			args[i] = TranslateFatalError(err)
+		}
+	}
+	GracefulShutdown(Errorf(causef, args...))
+}
+
+// store mainctx here
+
+var mainctx context.Context
+
+var alreadyhandled bool = true // sane default for use as a library (so we dont call fatal on your program)
+var cancelcausefunc context.CancelCauseFunc = func(cause error) {
+	Root().Warn("main shutdown function not registered, not exiting", "cause", cause)
+}
+
+// RegisterCancelCause registers a CancelCause func to be called when a fatal error is logged (GracefulShutdown, Crit, etc)
+func RegisterCancelCause(ctx context.Context, f context.CancelCauseFunc) {
+	if alreadyhandled {
+		panic("already registered")
+	}
+	mainctx = ctx
+	cancelcausefunc = f
+}
+
+func HandleSignals() {
+	alreadyhandled = false // we are in cmd/aquachain etc using mainctxs.CancelCause and log.GracefulShutdown is real
+}
+
+func TranslateFatalError(err error) error {
+	if mainctx != nil && context.Cause(mainctx) == context.Canceled && err == context.Canceled {
+		err = fmt.Errorf("received interrupt signal")
+	}
+	return err
+}
+
+// GracefulShutdown (when configured) returns immediately and initiates a graceful shutdown of the
+// entire stack (chain, rpc, p2p, etc) and logs the cause of the shutdown.
+//
+// After 10 seconds the process should panic
+func GracefulShutdown(cause error) {
+	if root != nil {
+		root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "caller1", Caller(1), "caller2", Caller(2)})
+	} else {
+		println("fatal: ", cause.Error())
+		if sense.EnvBool("DEBUG") {
+			println("stack trace requsted (DEBUG=1)...")
+			debug.PrintStack()
+		}
+	}
+	if alreadyhandled || testloghandler != nil { // or if testing
+		Warn("graceful shutdown requested", "cause", cause)
+		return
+	}
+	cancelcausefunc(cause) // this should shutdown the stack
+	go notifyGracefulShutdown(cause)
+}
+
+func notifyGracefulShutdown(cause error) {
+	for i := 10; i > 0; i-- {
+		time.Sleep(time.Second) // program should quit before this first sleep
+		root.write("graceful shutdown initiated", LvlCrit, []any{"cause", cause, "seconds", i})
+	}
+	// panic big
+	debug.SetTraceback("all")
+	panic(cause)
+}
+
+var Caller = stack.Caller
+
+// Errorf can be swapped for a caller-aware version (TODO)
+var Errorf = fmt.Errorf
