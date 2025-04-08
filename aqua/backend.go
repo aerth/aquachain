@@ -45,6 +45,7 @@ import (
 	"gitlab.com/aquachain/aquachain/core/types"
 	"gitlab.com/aquachain/aquachain/core/vm"
 	"gitlab.com/aquachain/aquachain/internal/aquaapi"
+	"gitlab.com/aquachain/aquachain/internal/debug"
 	"gitlab.com/aquachain/aquachain/node"
 
 	"gitlab.com/aquachain/aquachain/core/miner"
@@ -116,8 +117,8 @@ func New(ctx context.Context, nodectx *node.ServiceContext, config *config.Aquac
 		return nil, genesisErr
 	}
 	log.Info("Initialised chain configuration", "HF-Ready", chainConfig.HF, "config", chainConfig)
-
 	if config.ChainId != chainConfig.ChainId.Uint64() {
+		debug.PrintStack()
 		return nil, fmt.Errorf("ChainID mismatch: configured %d, chain %d", config.ChainId, chainConfig.ChainId)
 	}
 	aqua := &Aquachain{
