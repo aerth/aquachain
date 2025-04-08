@@ -97,7 +97,7 @@ commandlist:
 	@echo "Available commands to compile:"
 	@ls -1 cmd/ | egrep -v '^_|^internal|^utils' | sed -E 's/^(.*)$$/    make bin\/\1${maybeext}/'
 .PHONY += default bootnode hash
-deb: aquachain_$(version)_$(GOOS)_$(GOARCH).deb
+deb: checkrelease aquachain_$(version)_$(GOOS)_$(GOARCH).deb
 internal/jsre/deps/bindata.go: internal/jsre/deps/web3.js  internal/jsre/deps/bignumber.js
 	@test -x "$(gobindatacmd)" || echo 'warn: go-bindata not found in PATH. run make devtools to install required development dependencies'
 	@test -x "$(gobindatacmd)" || exit 0
