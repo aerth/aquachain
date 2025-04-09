@@ -83,6 +83,7 @@ old*
 
 # ignore keys that arent already in the repo (eg: test keys)
 UTC--20*
+/aquachain
 
 # otherwise gitignored by above
 !.devcontainer/devcontainer.json
