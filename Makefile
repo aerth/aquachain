@@ -170,6 +170,7 @@ ifneq (1,$(release))
 	exit 1
 endif
 release: checkrelease package hash
+	rm -rf ./tmprelease
 release/SHA384.txt:
 	$(hashfn) release/*.tar.gz release/*.zip release/*.deb | tee $@
 hash: release/SHA384.txt
