@@ -168,7 +168,7 @@ endif
 .PHONY += release
 checkrelease:
 ifneq (1,$(release))
-	echo "use make release release=1"
+	@echo "Error: required variable missing. Use 'make $(filter-out $@,$(MAKECMDGOALS)) release=1'"
 	exit 1
 endif
 release: checkrelease package hash
