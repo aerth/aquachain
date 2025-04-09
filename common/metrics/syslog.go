@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the aquachain library. If not, see <http://www.gnu.org/licenses/>.
 
-//go:build !windows && !solaris && !nacl
-// +build !windows,!solaris,!nacl
+//go:build !windows && !solaris && !nacl && !plan9
+// +build !windows,!solaris,!nacl,!plan9
 
 package metrics
 
